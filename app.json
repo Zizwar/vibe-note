@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Expo 55 Starter",
+    "slug": "expo-55-starter",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#046f98"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.starter.expo55",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#046f98"
+      },
+      "package": "com.starter.expo55",
+      "permissions": []
+    },
+    "plugins": [
+      "expo-sqlite",
+      ["expo-audio", { "microphonePermission": "Allow access to microphone." }],
+      ["expo-camera", { "cameraPermission": "Allow access to camera." }],
+      ["expo-location", { "locationAlwaysAndWhenInUsePermission": "Allow access to location." }],
+      ["expo-notifications", { "icon": "./assets/icon.png" }],
+      "expo-sharing",
+      "expo-font",
+      "expo-asset",
+      "expo-secure-store",
+      "expo-local-authentication"
+    ]
+  }
+}
