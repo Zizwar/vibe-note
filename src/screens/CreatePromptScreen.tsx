@@ -3,7 +3,8 @@ import {
   View, Text, TextInput, Pressable, ScrollView, StyleSheet, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING, FONT_SIZE, CATEGORIES, PLATFORMS } from '@/constants';
+import { RADIUS, SPACING, FONT_SIZE, CATEGORIES, PLATFORMS } from '@/constants';
+import { useThemeColors } from '@/hooks/useTheme';
 import TagInput from '@/components/TagInput';
 import { usePromptStore } from '@/stores/promptStore';
 import { useNavigationStore } from '@/stores/navigationStore';
@@ -22,6 +23,12 @@ export default function CreatePromptScreen({ promptId }: Props) {
   const goBack = useNavigationStore(s => s.goBack);
   const language = useSettingsStore(s => s.language);
   const isRTL = useSettingsStore(s => s.isRTL);
+  const customCategories = useSettingsStore(s => s.customCategories);
+  const customPlatforms = useSettingsStore(s => s.customPlatforms);
+  const colors = useThemeColors();
+
+  const allCategories = [...CATEGORIES, ...customCategories];
+  const allPlatforms = [...PLATFORMS, ...customPlatforms];
 
   const isEditing = !!promptId;
 
@@ -73,20 +80,19 @@ export default function CreatePromptScreen({ promptId }: Props) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Header */}
-      <View style={[styles.header, isRTL && styles.headerRTL]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }, isRTL && styles.headerRTL]}>
         <Pressable onPress={goBack} hitSlop={8}>
-          <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={24} color={COLORS.text} />
+          <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={24} color={colors.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
           {t(isEditing ? 'editPrompt' : 'newPrompt', language)}
         </Text>
         <Pressable
           onPress={handleSave}
-          style={[styles.saveBtn, (!title.trim() || !content.trim()) && styles.saveBtnDisabled]}
+          style={[styles.saveBtn, { backgroundColor: colors.primary }, (!title.trim() || !content.trim()) && styles.saveBtnDisabled]}
           disabled={!title.trim() || !content.trim()}
         >
           <Text style={styles.saveBtnText}>{t('save', language)}</Text>
@@ -94,48 +100,45 @@ export default function CreatePromptScreen({ promptId }: Props) {
       </View>
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-        {/* Title */}
-        <Text style={[styles.label, isRTL && styles.textRTL]}>{t('title', language)}</Text>
+        <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('title', language)}</Text>
         <TextInput
-          style={[styles.input, isRTL && styles.inputRTL]}
+          style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.card }, isRTL && styles.inputRTL]}
           value={title}
           onChangeText={setTitle}
           placeholder={t('title', language)}
-          placeholderTextColor={COLORS.textMuted}
+          placeholderTextColor={colors.textMuted}
         />
 
-        {/* Content */}
-        <Text style={[styles.label, isRTL && styles.textRTL]}>{t('content', language)}</Text>
+        <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('content', language)}</Text>
         <TextInput
-          style={[styles.input, styles.contentInput, isRTL && styles.inputRTL]}
+          style={[styles.input, styles.contentInput, { borderColor: colors.border, color: colors.text, backgroundColor: colors.card }, isRTL && styles.inputRTL]}
           value={content}
           onChangeText={setContent}
           placeholder={t('content', language)}
-          placeholderTextColor={COLORS.textMuted}
+          placeholderTextColor={colors.textMuted}
           multiline
           textAlignVertical="top"
         />
-        <Text style={styles.hint}>{t('variableHint', language)}</Text>
+        <Text style={[styles.hint, { color: colors.textMuted }]}>{t('variableHint', language)}</Text>
 
-        {/* Description */}
-        <Text style={[styles.label, isRTL && styles.textRTL]}>{t('description', language)}</Text>
+        <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('description', language)}</Text>
         <TextInput
-          style={[styles.input, isRTL && styles.inputRTL]}
+          style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.card }, isRTL && styles.inputRTL]}
           value={description}
           onChangeText={setDescription}
           placeholder={t('description', language)}
-          placeholderTextColor={COLORS.textMuted}
+          placeholderTextColor={colors.textMuted}
         />
 
-        {/* Category */}
-        <Text style={[styles.label, isRTL && styles.textRTL]}>{t('category', language)}</Text>
+        <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('category', language)}</Text>
         <View style={styles.chipGrid}>
-          {CATEGORIES.map(cat => (
+          {allCategories.map(cat => (
             <Pressable
               key={cat.value}
               style={[
                 styles.chip,
-                category === cat.value && { backgroundColor: cat.color },
+                { backgroundColor: colors.card, borderColor: colors.border },
+                category === cat.value && { backgroundColor: cat.color, borderColor: cat.color },
               ]}
               onPress={() => setCategory(cat.value)}
             >
@@ -146,6 +149,7 @@ export default function CreatePromptScreen({ promptId }: Props) {
               />
               <Text style={[
                 styles.chipText,
+                { color: colors.text },
                 category === cat.value && styles.chipTextActive,
               ]}>
                 {language === 'ar' ? cat.labelAr : cat.label}
@@ -154,15 +158,15 @@ export default function CreatePromptScreen({ promptId }: Props) {
           ))}
         </View>
 
-        {/* Platform */}
-        <Text style={[styles.label, isRTL && styles.textRTL]}>{t('platform', language)}</Text>
+        <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('platform', language)}</Text>
         <View style={styles.chipGrid}>
-          {PLATFORMS.map(plat => (
+          {allPlatforms.map(plat => (
             <Pressable
               key={plat.value}
               style={[
                 styles.chip,
-                platform === plat.value && { backgroundColor: plat.color },
+                { backgroundColor: colors.card, borderColor: colors.border },
+                platform === plat.value && { backgroundColor: plat.color, borderColor: plat.color },
               ]}
               onPress={() => setPlatform(plat.value)}
             >
@@ -173,6 +177,7 @@ export default function CreatePromptScreen({ promptId }: Props) {
               />
               <Text style={[
                 styles.chipText,
+                { color: colors.text },
                 platform === plat.value && styles.chipTextActive,
               ]}>
                 {plat.label}
@@ -181,8 +186,7 @@ export default function CreatePromptScreen({ promptId }: Props) {
           ))}
         </View>
 
-        {/* Tags */}
-        <Text style={[styles.label, isRTL && styles.textRTL]}>{t('tags', language)}</Text>
+        <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('tags', language)}</Text>
         <TagInput tags={tags} onChange={setTags} />
 
         <View style={{ height: 40 }} />
@@ -194,7 +198,6 @@ export default function CreatePromptScreen({ promptId }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
@@ -202,9 +205,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
-    backgroundColor: COLORS.card,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLORS.border,
   },
   headerRTL: {
     flexDirection: 'row-reverse',
@@ -212,10 +213,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FONT_SIZE.xl,
     fontWeight: '700',
-    color: COLORS.text,
   },
   saveBtn: {
-    backgroundColor: COLORS.primary,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
     borderRadius: RADIUS.md,
@@ -235,7 +234,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FONT_SIZE.md,
     fontWeight: '600',
-    color: COLORS.text,
     marginBottom: SPACING.xs,
     marginTop: SPACING.lg,
   },
@@ -244,12 +242,9 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.border,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     fontSize: FONT_SIZE.md,
-    color: COLORS.text,
-    backgroundColor: COLORS.card,
   },
   inputRTL: {
     textAlign: 'right',
@@ -259,7 +254,6 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: FONT_SIZE.xs,
-    color: COLORS.textMuted,
     marginTop: SPACING.xs,
     fontStyle: 'italic',
   },
@@ -275,13 +269,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
   chipText: {
     fontSize: FONT_SIZE.sm,
-    color: COLORS.text,
     fontWeight: '500',
   },
   chipTextActive: {

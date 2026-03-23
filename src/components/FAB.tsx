@@ -1,15 +1,17 @@
 import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SHADOW } from '@/constants';
+import { SHADOW } from '@/constants';
+import { useThemeColors } from '@/hooks/useTheme';
 import { useNavigationStore } from '@/stores/navigationStore';
 
 export default function FAB() {
   const navigate = useNavigationStore(s => s.navigate);
+  const colors = useThemeColors();
 
   return (
     <Pressable
-      style={styles.fab}
+      style={[styles.fab, { backgroundColor: colors.primary }]}
       onPress={() => navigate('CreatePrompt')}
     >
       <Ionicons name="add" size={28} color="#fff" />
@@ -25,7 +27,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     ...SHADOW.elevated,

@@ -7,7 +7,8 @@ export type PromptCategory =
   | 'business'
   | 'music'
   | 'education'
-  | 'other';
+  | 'other'
+  | (string & {});
 
 export type AIPlatform =
   | 'chatgpt'
@@ -23,7 +24,8 @@ export type AIPlatform =
   | 'cursor'
   | 'v0'
   | 'lovable'
-  | 'other';
+  | 'other'
+  | (string & {});
 
 export interface VariableDefinition {
   name: string;
@@ -58,7 +60,11 @@ export type ScreenName =
   | 'CreatePrompt'
   | 'EditPrompt'
   | 'PromptDetail'
-  | 'Settings';
+  | 'Settings'
+  | 'ManageCategories'
+  | 'ManagePlatforms'
+  | 'AISettings'
+  | 'AIAssistant';
 
 export interface NavigationParams {
   promptId?: string;

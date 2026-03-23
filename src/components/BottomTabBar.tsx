@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONT_SIZE } from '@/constants';
+import { SPACING, FONT_SIZE } from '@/constants';
+import { useThemeColors } from '@/hooks/useTheme';
 import { useNavigationStore } from '@/stores/navigationStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { t } from '@/i18n/strings';
@@ -11,12 +12,13 @@ interface Tab {
   screen: ScreenName;
   icon: string;
   iconActive: string;
-  labelKey: 'home' | 'favorites' | 'settings';
+  labelKey: 'home' | 'favorites' | 'aiAssistant' | 'settings';
 }
 
 const TABS: Tab[] = [
   { screen: 'Home', icon: 'home-outline', iconActive: 'home', labelKey: 'home' },
   { screen: 'Favorites', icon: 'heart-outline', iconActive: 'heart', labelKey: 'favorites' },
+  { screen: 'AIAssistant', icon: 'sparkles-outline', iconActive: 'sparkles', labelKey: 'aiAssistant' },
   { screen: 'Settings', icon: 'settings-outline', iconActive: 'settings', labelKey: 'settings' },
 ];
 
@@ -24,9 +26,10 @@ export default function BottomTabBar() {
   const currentScreen = useNavigationStore(s => s.currentScreen);
   const navigate = useNavigationStore(s => s.navigate);
   const language = useSettingsStore(s => s.language);
+  const colors = useThemeColors();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
       {TABS.map(tab => {
         const isActive = currentScreen === tab.screen;
         return (
@@ -38,9 +41,9 @@ export default function BottomTabBar() {
             <Ionicons
               name={(isActive ? tab.iconActive : tab.icon) as any}
               size={22}
-              color={isActive ? COLORS.primary : COLORS.textMuted}
+              color={isActive ? colors.primary : colors.textMuted}
             />
-            <Text style={[styles.label, isActive && styles.labelActive]}>
+            <Text style={[styles.label, { color: colors.textMuted }, isActive && { color: colors.primary, fontWeight: '600' }]}>
               {t(tab.labelKey, language)}
             </Text>
           </Pressable>
@@ -53,9 +56,7 @@ export default function BottomTabBar() {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: COLORS.card,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: COLORS.border,
     paddingBottom: SPACING.sm,
     paddingTop: SPACING.sm,
   },
@@ -67,10 +68,5 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: FONT_SIZE.xs,
-    color: COLORS.textMuted,
-  },
-  labelActive: {
-    color: COLORS.primary,
-    fontWeight: '600',
   },
 });

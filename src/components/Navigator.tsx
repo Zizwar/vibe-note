@@ -5,6 +5,10 @@ import FavoritesScreen from '@/screens/FavoritesScreen';
 import CreatePromptScreen from '@/screens/CreatePromptScreen';
 import PromptDetailScreen from '@/screens/PromptDetailScreen';
 import SettingsScreen from '@/screens/SettingsScreen';
+import ManageCategoriesScreen from '@/screens/ManageCategoriesScreen';
+import ManagePlatformsScreen from '@/screens/ManagePlatformsScreen';
+import AISettingsScreen from '@/screens/AISettingsScreen';
+import AIAssistantScreen from '@/screens/AIAssistantScreen';
 
 export default function Navigator() {
   const currentScreen = useNavigationStore(s => s.currentScreen);
@@ -23,6 +27,14 @@ export default function Navigator() {
       return <PromptDetailScreen promptId={params.promptId} />;
     case 'Settings':
       return <SettingsScreen />;
+    case 'ManageCategories':
+      return <ManageCategoriesScreen />;
+    case 'ManagePlatforms':
+      return <ManagePlatformsScreen />;
+    case 'AISettings':
+      return <AISettingsScreen />;
+    case 'AIAssistant':
+      return <AIAssistantScreen />;
     default:
       return <HomeScreen />;
   }

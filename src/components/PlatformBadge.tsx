@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PLATFORMS, RADIUS, SPACING, FONT_SIZE } from '@/constants';
+import { useSettingsStore } from '@/stores/settingsStore';
 import type { AIPlatform } from '@/types';
 
 interface Props {
@@ -10,7 +11,9 @@ interface Props {
 }
 
 export default function PlatformBadge({ platform, size = 'sm' }: Props) {
-  const info = PLATFORMS.find(p => p.value === platform) || PLATFORMS[PLATFORMS.length - 1];
+  const customPlatforms = useSettingsStore(s => s.customPlatforms);
+  const allPlatforms = [...PLATFORMS, ...customPlatforms];
+  const info = allPlatforms.find(p => p.value === platform) || PLATFORMS[PLATFORMS.length - 1];
   const isMd = size === 'md';
 
   return (

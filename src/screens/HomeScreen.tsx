@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, FlatList, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONT_SIZE } from '@/constants';
+import { SPACING, FONT_SIZE } from '@/constants';
+import { useThemeColors } from '@/hooks/useTheme';
 import SearchBar from '@/components/SearchBar';
 import CategoryFilter from '@/components/CategoryFilter';
 import PromptCard from '@/components/PromptCard';
@@ -18,6 +19,7 @@ export default function HomeScreen() {
   const loadPrompts = usePromptStore(s => s.loadPrompts);
   const language = useSettingsStore(s => s.language);
   const [fillerPrompt, setFillerPrompt] = useState<ProomyNote | null>(null);
+  const colors = useThemeColors();
 
   useEffect(() => {
     loadPrompts();
@@ -25,14 +27,14 @@ export default function HomeScreen() {
 
   const renderEmpty = () => (
     <View style={styles.empty}>
-      <Ionicons name="document-text-outline" size={64} color={COLORS.textMuted} />
-      <Text style={styles.emptyTitle}>{t('noPrompts', language)}</Text>
-      <Text style={styles.emptyDesc}>{t('noPromptsDesc', language)}</Text>
+      <Ionicons name="document-text-outline" size={64} color={colors.textMuted} />
+      <Text style={[styles.emptyTitle, { color: colors.textSecondary }]}>{t('noPrompts', language)}</Text>
+      <Text style={[styles.emptyDesc, { color: colors.textMuted }]}>{t('noPromptsDesc', language)}</Text>
     </View>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <SearchBar />
       <CategoryFilter />
       <FlatList
@@ -58,7 +60,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   list: {
     paddingBottom: 100,
@@ -75,12 +76,10 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: FONT_SIZE.xl,
     fontWeight: '600',
-    color: COLORS.textSecondary,
     marginTop: SPACING.lg,
   },
   emptyDesc: {
     fontSize: FONT_SIZE.md,
-    color: COLORS.textMuted,
     marginTop: SPACING.xs,
   },
 });

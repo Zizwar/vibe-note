@@ -1,19 +1,37 @@
 export const COLORS = {
-  primary: '#046f98',
-  primaryLight: '#0891b2',
-  primaryDark: '#035a7c',
+  primary: '#336699',
+  primaryLight: '#4a80b4',
+  primaryDark: '#264d73',
   background: '#f5f5f5',
   card: '#ffffff',
   text: '#333333',
   textSecondary: '#888888',
   textMuted: '#bbbbbb',
-  border: '#f0f0f0',
+  border: '#e8e8e8',
   danger: '#EF4444',
   success: '#22C55E',
   warning: '#F59E0B',
   white: '#ffffff',
   black: '#000000',
   overlay: 'rgba(0,0,0,0.5)',
+};
+
+export const DARK_COLORS: typeof COLORS = {
+  primary: '#4a88c2',
+  primaryLight: '#5a9ad5',
+  primaryDark: '#336699',
+  background: '#121212',
+  card: '#1e1e1e',
+  text: '#e8e8e8',
+  textSecondary: '#a0a0a0',
+  textMuted: '#666666',
+  border: '#2c2c2c',
+  danger: '#EF4444',
+  success: '#22C55E',
+  warning: '#F59E0B',
+  white: '#ffffff',
+  black: '#000000',
+  overlay: 'rgba(0,0,0,0.7)',
 };
 
 export const SPACING = {
