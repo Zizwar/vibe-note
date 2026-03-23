@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Expo 55 Starter",
-    "slug": "expo-55-starter",
+    "name": "Proomy Note",
+    "slug": "proomy-note",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
