@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING, FONT_SIZE, SHADOW, CATEGORIES } from '@/constants';
+import { RADIUS, SPACING, FONT_SIZE, SHADOW, CATEGORIES } from '@/constants';
+import { useThemeColors } from '@/hooks/useTheme';
 import PlatformBadge from './PlatformBadge';
 import { hasVariables } from '@/engine/variableParser';
 import { copyToClipboard } from '@/utils/clipboard';
@@ -20,7 +21,10 @@ export default function PromptCard({ prompt, onUse }: Props) {
   const incrementUsage = usePromptStore(s => s.incrementUsage);
   const navigate = useNavigationStore(s => s.navigate);
   const isRTL = useSettingsStore(s => s.isRTL);
-  const catInfo = CATEGORIES.find(c => c.value === prompt.category);
+  const customCategories = useSettingsStore(s => s.customCategories);
+  const colors = useThemeColors();
+  const allCategories = [...CATEGORIES, ...customCategories];
+  const catInfo = allCategories.find(c => c.value === prompt.category);
   const hasVars = hasVariables(prompt.content);
 
   const handleCopy = async () => {
@@ -34,14 +38,13 @@ export default function PromptCard({ prompt, onUse }: Props) {
 
   return (
     <Pressable
-      style={styles.card}
+      style={[styles.card, { backgroundColor: colors.card }]}
       onPress={() => navigate('PromptDetail', { promptId: prompt.id })}
     >
-      {/* Top row */}
       <View style={[styles.topRow, isRTL && styles.rowRTL]}>
         <PlatformBadge platform={prompt.platform} />
         {prompt.isPinned && (
-          <Ionicons name="pin" size={14} color={COLORS.primary} />
+          <Ionicons name="pin" size={14} color={colors.primary} />
         )}
         {catInfo && (
           <View style={[styles.catBadge, { backgroundColor: catInfo.color + '18' }]}>
@@ -52,59 +55,54 @@ export default function PromptCard({ prompt, onUse }: Props) {
         )}
       </View>
 
-      {/* Title */}
-      <Text style={[styles.title, isRTL && styles.textRTL]} numberOfLines={1}>
+      <Text style={[styles.title, { color: colors.text }, isRTL && styles.textRTL]} numberOfLines={1}>
         {prompt.title}
       </Text>
 
-      {/* Content preview */}
-      <Text style={[styles.preview, isRTL && styles.textRTL]} numberOfLines={2}>
+      <Text style={[styles.preview, { color: colors.textSecondary }, isRTL && styles.textRTL]} numberOfLines={2}>
         {prompt.content}
       </Text>
 
-      {/* Variable chips */}
       {hasVars && (
         <View style={[styles.varRow, isRTL && styles.rowRTL]}>
           {prompt.content.match(/\{\{(\w+)/g)?.slice(0, 4).map((v, i) => (
-            <View key={i} style={styles.varChip}>
-              <Text style={styles.varText}>{v.replace('{{', '')}</Text>
+            <View key={i} style={[styles.varChip, { backgroundColor: colors.primary + '15' }]}>
+              <Text style={[styles.varText, { color: colors.primary }]}>{v.replace('{{', '')}</Text>
             </View>
           ))}
         </View>
       )}
 
-      {/* Tags */}
       {prompt.tags.length > 0 && (
         <View style={[styles.tagRow, isRTL && styles.rowRTL]}>
           {prompt.tags.slice(0, 3).map((tag, i) => (
-            <Text key={i} style={styles.tag}>#{tag}</Text>
+            <Text key={i} style={[styles.tag, { color: colors.textSecondary }]}>#{tag}</Text>
           ))}
         </View>
       )}
 
-      {/* Actions */}
-      <View style={[styles.actions, isRTL && styles.rowRTL]}>
+      <View style={[styles.actions, { borderTopColor: colors.border }, isRTL && styles.rowRTL]}>
         <Pressable onPress={() => toggleFavorite(prompt.id)} hitSlop={8}>
           <Ionicons
             name={prompt.isFavorite ? 'heart' : 'heart-outline'}
             size={20}
-            color={prompt.isFavorite ? '#EF4444' : COLORS.textMuted}
+            color={prompt.isFavorite ? '#EF4444' : colors.textMuted}
           />
         </Pressable>
 
         {prompt.usageCount > 0 && (
-          <Text style={styles.usageText}>{prompt.usageCount}x</Text>
+          <Text style={[styles.usageText, { color: colors.textMuted }]}>{prompt.usageCount}x</Text>
         )}
 
         <View style={{ flex: 1 }} />
 
         {hasVars ? (
-          <Pressable style={styles.actionBtn} onPress={handleUse}>
+          <Pressable style={[styles.actionBtn, { backgroundColor: colors.primary }]} onPress={handleUse}>
             <Ionicons name="play" size={14} color="#fff" />
             <Text style={styles.actionBtnText}>Use</Text>
           </Pressable>
         ) : (
-          <Pressable style={styles.actionBtn} onPress={handleCopy}>
+          <Pressable style={[styles.actionBtn, { backgroundColor: colors.primary }]} onPress={handleCopy}>
             <Ionicons name="copy" size={14} color="#fff" />
             <Text style={styles.actionBtnText}>Copy</Text>
           </Pressable>
@@ -116,7 +114,6 @@ export default function PromptCard({ prompt, onUse }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.card,
     borderRadius: RADIUS.lg,
     padding: SPACING.lg,
     marginHorizontal: SPACING.lg,
@@ -144,7 +141,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
-    color: COLORS.text,
     marginBottom: 4,
   },
   textRTL: {
@@ -152,7 +148,6 @@ const styles = StyleSheet.create({
   },
   preview: {
     fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
     lineHeight: 20,
     marginBottom: SPACING.sm,
   },
@@ -163,14 +158,12 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   varChip: {
-    backgroundColor: COLORS.primary + '15',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: RADIUS.sm,
   },
   varText: {
     fontSize: FONT_SIZE.xs,
-    color: COLORS.primary,
     fontWeight: '500',
   },
   tagRow: {
@@ -180,25 +173,21 @@ const styles = StyleSheet.create({
   },
   tag: {
     fontSize: FONT_SIZE.xs,
-    color: COLORS.textSecondary,
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: COLORS.border,
     paddingTop: SPACING.sm,
   },
   usageText: {
     fontSize: FONT_SIZE.xs,
-    color: COLORS.textMuted,
   },
   actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: COLORS.primary,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
     borderRadius: RADIUS.sm,

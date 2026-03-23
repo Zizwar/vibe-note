@@ -11,15 +11,18 @@ import Navigator from '@/components/Navigator';
 import BottomTabBar from '@/components/BottomTabBar';
 import { useNavigationStore } from '@/stores/navigationStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useThemeColors } from '@/hooks/useTheme';
 import { t } from '@/i18n/strings';
 
-const FULL_SCREEN_ROUTES = new Set(['CreatePrompt', 'EditPrompt', 'PromptDetail']);
+const FULL_SCREEN_ROUTES = new Set(['CreatePrompt', 'EditPrompt', 'PromptDetail', 'ManageCategories', 'ManagePlatforms', 'AISettings', 'AIAssistant']);
 
 export default function App() {
   const [ready, setReady] = useState(false);
   const currentScreen = useNavigationStore(s => s.currentScreen);
   const language = useSettingsStore(s => s.language);
   const isRTL = useSettingsStore(s => s.isRTL);
+  const isDarkMode = useSettingsStore(s => s.isDarkMode);
+  const colors = useThemeColors();
 
   useEffect(() => {
     try {
@@ -29,14 +32,14 @@ export default function App() {
       setReady(true);
     } catch (e) {
       console.error('Database initialization failed:', e);
-      setReady(true); // Still show app
+      setReady(true);
     }
   }, []);
 
   if (!ready) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#046f98" />
+      <View style={[styles.loading, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -46,23 +49,20 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <SafeAreaView style={styles.container} edges={['top']}>
-          <StatusBar style="light" />
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]} edges={['top']}>
+          <StatusBar style={isDarkMode ? 'light' : 'light'} />
 
-          {/* Header - only show on tab screens */}
           {!isFullScreen && (
-            <View style={[styles.header, isRTL && styles.headerRTL]}>
+            <View style={[styles.header, { backgroundColor: colors.primary }, isRTL && styles.headerRTL]}>
               <Ionicons name="sparkles" size={24} color="#fff" />
               <Text style={styles.headerTitle}>{t('appName', language)}</Text>
             </View>
           )}
 
-          {/* Main content */}
-          <View style={styles.content}>
+          <View style={[styles.content, { backgroundColor: colors.background }]}>
             <Navigator />
           </View>
 
-          {/* Bottom tab bar - only show on tab screens */}
           {!isFullScreen && <BottomTabBar />}
         </SafeAreaView>
       </SafeAreaProvider>
@@ -78,11 +78,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
   },
   container: {
     flex: 1,
-    backgroundColor: '#046f98',
   },
   header: {
     flexDirection: 'row',
@@ -90,7 +88,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
-    backgroundColor: '#046f98',
   },
   headerRTL: {
     flexDirection: 'row-reverse',
@@ -102,7 +99,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',

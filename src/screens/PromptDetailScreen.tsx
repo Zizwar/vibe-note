@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING, FONT_SIZE, SHADOW, CATEGORIES } from '@/constants';
+import { RADIUS, SPACING, FONT_SIZE, SHADOW, CATEGORIES } from '@/constants';
+import { useThemeColors } from '@/hooks/useTheme';
 import PlatformBadge from '@/components/PlatformBadge';
 import VariableFiller from '@/components/VariableFiller';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -26,6 +27,10 @@ export default function PromptDetailScreen({ promptId }: Props) {
   const goBack = useNavigationStore(s => s.goBack);
   const language = useSettingsStore(s => s.language);
   const isRTL = useSettingsStore(s => s.isRTL);
+  const customCategories = useSettingsStore(s => s.customCategories);
+  const colors = useThemeColors();
+
+  const allCategories = [...CATEGORIES, ...customCategories];
 
   const [prompt, setPrompt] = useState<ProomyNote | null>(null);
   const [showFiller, setShowFiller] = useState(false);
@@ -39,13 +44,13 @@ export default function PromptDetailScreen({ promptId }: Props) {
 
   if (!prompt) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.notFound}>Prompt not found</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.notFound, { color: colors.textSecondary }]}>Prompt not found</Text>
       </View>
     );
   }
 
-  const catInfo = CATEGORIES.find(c => c.value === prompt.category);
+  const catInfo = allCategories.find(c => c.value === prompt.category);
   const hasVars = hasVariables(prompt.content);
 
   const handleCopy = async () => {
@@ -60,14 +65,13 @@ export default function PromptDetailScreen({ promptId }: Props) {
 
   const formatDate = (ts: number) => new Date(ts).toLocaleDateString();
 
-  // Highlight {{variables}} in content
   const renderContent = () => {
     const parts = prompt.content.split(/(\{\{[^}]+\}\})/g);
     return (
-      <Text style={[styles.content, isRTL && styles.textRTL]}>
+      <Text style={[styles.content, { color: colors.text }, isRTL && styles.textRTL]}>
         {parts.map((part, i) =>
           part.match(/^\{\{/) ? (
-            <Text key={i} style={styles.variable}>{part}</Text>
+            <Text key={i} style={[styles.variable, { color: colors.primary, backgroundColor: colors.primary + '12' }]}>{part}</Text>
           ) : (
             <Text key={i}>{part}</Text>
           )
@@ -77,11 +81,10 @@ export default function PromptDetailScreen({ promptId }: Props) {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, isRTL && styles.headerRTL]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }, isRTL && styles.headerRTL]}>
         <Pressable onPress={goBack} hitSlop={8}>
-          <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={24} color={COLORS.text} />
+          <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={24} color={colors.text} />
         </Pressable>
         <View style={{ flex: 1 }} />
         <Pressable
@@ -89,15 +92,14 @@ export default function PromptDetailScreen({ promptId }: Props) {
           hitSlop={8}
           style={styles.headerBtn}
         >
-          <Ionicons name="create-outline" size={22} color={COLORS.primary} />
+          <Ionicons name="create-outline" size={22} color={colors.primary} />
         </Pressable>
         <Pressable onPress={() => setShowDelete(true)} hitSlop={8} style={styles.headerBtn}>
-          <Ionicons name="trash-outline" size={22} color={COLORS.danger} />
+          <Ionicons name="trash-outline" size={22} color={colors.danger} />
         </Pressable>
       </View>
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-        {/* Badges */}
         <View style={[styles.badgeRow, isRTL && styles.rowRTL]}>
           <PlatformBadge platform={prompt.platform} size="md" />
           {catInfo && (
@@ -109,64 +111,58 @@ export default function PromptDetailScreen({ promptId }: Props) {
             </View>
           )}
           {prompt.isPinned && (
-            <View style={styles.pinBadge}>
-              <Ionicons name="pin" size={12} color={COLORS.primary} />
-              <Text style={styles.pinText}>{t('pinned', language)}</Text>
+            <View style={[styles.pinBadge, { backgroundColor: colors.primary + '15' }]}>
+              <Ionicons name="pin" size={12} color={colors.primary} />
+              <Text style={[styles.pinText, { color: colors.primary }]}>{t('pinned', language)}</Text>
             </View>
           )}
         </View>
 
-        {/* Title */}
-        <Text style={[styles.title, isRTL && styles.textRTL]}>{prompt.title}</Text>
+        <Text style={[styles.title, { color: colors.text }, isRTL && styles.textRTL]}>{prompt.title}</Text>
 
-        {/* Description */}
         {prompt.description && (
-          <Text style={[styles.description, isRTL && styles.textRTL]}>
+          <Text style={[styles.description, { color: colors.textSecondary }, isRTL && styles.textRTL]}>
             {prompt.description}
           </Text>
         )}
 
-        {/* Content */}
-        <View style={styles.contentCard}>
+        <View style={[styles.contentCard, { backgroundColor: colors.card }]}>
           {renderContent()}
         </View>
 
-        {/* Tags */}
         {prompt.tags.length > 0 && (
           <View style={[styles.tagRow, isRTL && styles.rowRTL]}>
             {prompt.tags.map((tag, i) => (
-              <View key={i} style={styles.tag}>
-                <Text style={styles.tagText}>#{tag}</Text>
+              <View key={i} style={[styles.tag, { backgroundColor: colors.primary + '15' }]}>
+                <Text style={[styles.tagText, { color: colors.primary }]}>#{tag}</Text>
               </View>
             ))}
           </View>
         )}
 
-        {/* Stats */}
-        <View style={styles.statsCard}>
-          <View style={styles.statRow}>
-            <Text style={styles.statLabel}>{t('usageCount', language)}</Text>
-            <Text style={styles.statValue}>{prompt.usageCount} {t('times', language)}</Text>
+        <View style={[styles.statsCard, { backgroundColor: colors.card }]}>
+          <View style={[styles.statRow, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('usageCount', language)}</Text>
+            <Text style={[styles.statValue, { color: colors.text }]}>{prompt.usageCount} {t('times', language)}</Text>
           </View>
           {prompt.lastUsedAt && (
-            <View style={styles.statRow}>
-              <Text style={styles.statLabel}>{t('lastUsed', language)}</Text>
-              <Text style={styles.statValue}>{formatDate(prompt.lastUsedAt)}</Text>
+            <View style={[styles.statRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('lastUsed', language)}</Text>
+              <Text style={[styles.statValue, { color: colors.text }]}>{formatDate(prompt.lastUsedAt)}</Text>
             </View>
           )}
-          <View style={styles.statRow}>
-            <Text style={styles.statLabel}>{t('created', language)}</Text>
-            <Text style={styles.statValue}>{formatDate(prompt.createdAt)}</Text>
+          <View style={[styles.statRow, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('created', language)}</Text>
+            <Text style={[styles.statValue, { color: colors.text }]}>{formatDate(prompt.createdAt)}</Text>
           </View>
         </View>
 
         <View style={{ height: 20 }} />
       </ScrollView>
 
-      {/* Bottom actions */}
-      <View style={styles.bottomActions}>
+      <View style={[styles.bottomActions, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
         <Pressable
-          style={styles.favBtn}
+          style={[styles.favBtn, { backgroundColor: colors.background }]}
           onPress={() => {
             toggleFavorite(prompt.id);
             setPrompt(prev => prev ? { ...prev, isFavorite: !prev.isFavorite } : null);
@@ -175,17 +171,17 @@ export default function PromptDetailScreen({ promptId }: Props) {
           <Ionicons
             name={prompt.isFavorite ? 'heart' : 'heart-outline'}
             size={24}
-            color={prompt.isFavorite ? '#EF4444' : COLORS.textMuted}
+            color={prompt.isFavorite ? '#EF4444' : colors.textMuted}
           />
         </Pressable>
 
         {hasVars ? (
-          <Pressable style={styles.mainAction} onPress={() => setShowFiller(true)}>
+          <Pressable style={[styles.mainAction, { backgroundColor: colors.primary }]} onPress={() => setShowFiller(true)}>
             <Ionicons name="play" size={18} color="#fff" />
             <Text style={styles.mainActionText}>{t('usePrompt', language)}</Text>
           </Pressable>
         ) : (
-          <Pressable style={styles.mainAction} onPress={handleCopy}>
+          <Pressable style={[styles.mainAction, { backgroundColor: colors.primary }]} onPress={handleCopy}>
             <Ionicons name="copy" size={18} color="#fff" />
             <Text style={styles.mainActionText}>{t('copy', language)}</Text>
           </Pressable>
@@ -214,22 +210,18 @@ export default function PromptDetailScreen({ promptId }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   notFound: {
     textAlign: 'center',
     marginTop: 100,
     fontSize: FONT_SIZE.lg,
-    color: COLORS.textSecondary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
-    backgroundColor: COLORS.card,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLORS.border,
   },
   headerRTL: {
     flexDirection: 'row-reverse',
@@ -269,17 +261,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
     paddingVertical: 2,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primary + '15',
   },
   pinText: {
     fontSize: FONT_SIZE.xs,
-    color: COLORS.primary,
     fontWeight: '500',
   },
   title: {
     fontSize: FONT_SIZE.xxl,
     fontWeight: '700',
-    color: COLORS.text,
     marginBottom: SPACING.sm,
   },
   textRTL: {
@@ -287,12 +276,10 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: FONT_SIZE.md,
-    color: COLORS.textSecondary,
     marginBottom: SPACING.lg,
     lineHeight: 22,
   },
   contentCard: {
-    backgroundColor: COLORS.card,
     borderRadius: RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.lg,
@@ -300,13 +287,10 @@ const styles = StyleSheet.create({
   },
   content: {
     fontSize: FONT_SIZE.md,
-    color: COLORS.text,
     lineHeight: 24,
   },
   variable: {
-    color: COLORS.primary,
     fontWeight: '700',
-    backgroundColor: COLORS.primary + '12',
   },
   tagRow: {
     flexDirection: 'row',
@@ -315,18 +299,15 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   tag: {
-    backgroundColor: COLORS.primary + '15',
     paddingHorizontal: SPACING.sm,
     paddingVertical: 4,
     borderRadius: RADIUS.full,
   },
   tagText: {
     fontSize: FONT_SIZE.sm,
-    color: COLORS.primary,
     fontWeight: '500',
   },
   statsCard: {
-    backgroundColor: COLORS.card,
     borderRadius: RADIUS.lg,
     padding: SPACING.lg,
     ...SHADOW.card,
@@ -336,15 +317,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: SPACING.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLORS.border,
   },
   statLabel: {
     fontSize: FONT_SIZE.md,
-    color: COLORS.textSecondary,
   },
   statValue: {
     fontSize: FONT_SIZE.md,
-    color: COLORS.text,
     fontWeight: '600',
   },
   bottomActions: {
@@ -352,15 +330,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.md,
     padding: SPACING.lg,
-    backgroundColor: COLORS.card,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: COLORS.border,
   },
   favBtn: {
     width: 48,
     height: 48,
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -370,7 +345,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACING.sm,
-    backgroundColor: COLORS.primary,
     paddingVertical: SPACING.md,
     borderRadius: RADIUS.md,
   },
