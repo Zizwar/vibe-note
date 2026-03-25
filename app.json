@@ -1,0 +1,87 @@
+{
+  "expo": {
+    "name": "Proomy Note",
+    "slug": "proomy-note",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#cccccc"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.starter.expo55",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#046f98"
+      },
+      "package": "com.starter.expo55",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "file",
+              "mimeType": "application/json"
+            },
+            {
+              "scheme": "content",
+              "mimeType": "application/json"
+            },
+            {
+              "scheme": "file",
+              "mimeType": "text/plain"
+            },
+            {
+              "scheme": "content",
+              "mimeType": "text/plain"
+            },
+            {
+              "scheme": "file",
+              "pathPattern": ".*\\.proomy"
+            },
+            {
+              "scheme": "content",
+              "pathPattern": ".*\\.proomy"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "plugins": [
+      "expo-sqlite",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow access to microphone."
+        }
+      ],
+      "expo-sharing",
+      "expo-secure-store",
+      "expo-document-picker"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "2d1eb37b-62f5-4637-9a83-db50c76a9d94"
+      }
+    }
+  }
+}
