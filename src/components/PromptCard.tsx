@@ -5,6 +5,7 @@ import { RADIUS, SPACING, FONT_SIZE, SHADOW, CATEGORIES } from '@/constants';
 import { useThemeColors } from '@/hooks/useTheme';
 import PlatformBadge from './PlatformBadge';
 import { hasVariables } from '@/engine/variableParser';
+import { estimateTokens, formatTokenCount } from '@/utils/tokenCounter';
 import { copyToClipboard } from '@/utils/clipboard';
 import { usePromptStore } from '@/stores/promptStore';
 import { useNavigationStore } from '@/stores/navigationStore';
@@ -14,9 +15,10 @@ import type { ProomyNote } from '@/types';
 interface Props {
   prompt: ProomyNote;
   onUse: (prompt: ProomyNote) => void;
+  compact?: boolean;
 }
 
-export default function PromptCard({ prompt, onUse }: Props) {
+export default function PromptCard({ prompt, onUse, compact }: Props) {
   const toggleFavorite = usePromptStore(s => s.toggleFavorite);
   const incrementUsage = usePromptStore(s => s.incrementUsage);
   const navigate = useNavigationStore(s => s.navigate);
@@ -26,6 +28,7 @@ export default function PromptCard({ prompt, onUse }: Props) {
   const allCategories = [...CATEGORIES, ...customCategories];
   const catInfo = allCategories.find(c => c.value === prompt.category);
   const hasVars = hasVariables(prompt.content);
+  const tokenCount = estimateTokens(prompt.content);
 
   const handleCopy = async () => {
     await copyToClipboard(prompt.content);
@@ -35,6 +38,47 @@ export default function PromptCard({ prompt, onUse }: Props) {
   const handleUse = () => {
     onUse(prompt);
   };
+
+  if (compact) {
+    return (
+      <Pressable
+        style={[styles.compactCard, { backgroundColor: colors.card }]}
+        onPress={() => navigate('PromptDetail', { promptId: prompt.id })}
+      >
+        <View style={styles.compactTop}>
+          <PlatformBadge platform={prompt.platform} size="sm" />
+          {prompt.isFavorite && (
+            <Ionicons name="heart" size={12} color="#EF4444" />
+          )}
+        </View>
+        <Text style={[styles.compactTitle, { color: colors.text }]} numberOfLines={2}>
+          {prompt.title}
+        </Text>
+        <Text style={[styles.compactPreview, { color: colors.textMuted }]} numberOfLines={2}>
+          {prompt.content}
+        </Text>
+        <View style={styles.compactBottom}>
+          <Text style={[styles.compactTokens, { color: colors.textMuted }]}>
+            {formatTokenCount(tokenCount)} tok
+          </Text>
+          {hasVars ? (
+            <Pressable style={[styles.compactAction, { backgroundColor: colors.primary }]} onPress={handleUse}>
+              <Ionicons name="play" size={10} color="#fff" />
+            </Pressable>
+          ) : (
+            <Pressable style={[styles.compactAction, { backgroundColor: colors.primary }]} onPress={handleCopy}>
+              <Ionicons name="copy" size={10} color="#fff" />
+            </Pressable>
+          )}
+        </View>
+        {prompt.audioBase64 && (
+          <View style={[styles.audioIcon, { backgroundColor: colors.warning + '15' }]}>
+            <Ionicons name="mic" size={10} color={colors.warning} />
+          </View>
+        )}
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable
@@ -53,6 +97,15 @@ export default function PromptCard({ prompt, onUse }: Props) {
             </Text>
           </View>
         )}
+        {prompt.audioBase64 && (
+          <View style={[styles.catBadge, { backgroundColor: colors.warning + '18' }]}>
+            <Ionicons name="mic" size={10} color={colors.warning} />
+          </View>
+        )}
+        <View style={{ flex: 1 }} />
+        <Text style={[styles.tokenLabel, { color: colors.textMuted }]}>
+          {formatTokenCount(tokenCount)} tok
+        </Text>
       </View>
 
       <Text style={[styles.title, { color: colors.text }, isRTL && styles.textRTL]} numberOfLines={1}>
@@ -114,87 +167,50 @@ export default function PromptCard({ prompt, onUse }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-    ...SHADOW.card,
+    borderRadius: RADIUS.lg, padding: SPACING.lg,
+    marginHorizontal: SPACING.lg, marginBottom: SPACING.md, ...SHADOW.card,
   },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    marginBottom: SPACING.sm,
-  },
-  rowRTL: {
-    flexDirection: 'row-reverse',
-  },
-  catBadge: {
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-    borderRadius: RADIUS.full,
-  },
-  catText: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  textRTL: {
-    textAlign: 'right',
-  },
-  preview: {
-    fontSize: FONT_SIZE.sm,
-    lineHeight: 20,
-    marginBottom: SPACING.sm,
-  },
-  varRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-    marginBottom: SPACING.sm,
-  },
-  varChip: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: RADIUS.sm,
-  },
-  varText: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '500',
-  },
-  tagRow: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-    marginBottom: SPACING.sm,
-  },
-  tag: {
-    fontSize: FONT_SIZE.xs,
-  },
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.sm },
+  rowRTL: { flexDirection: 'row-reverse' },
+  catBadge: { paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: RADIUS.full },
+  catText: { fontSize: FONT_SIZE.xs, fontWeight: '600' },
+  tokenLabel: { fontSize: FONT_SIZE.xs },
+  title: { fontSize: FONT_SIZE.lg, fontWeight: '700', marginBottom: 4 },
+  textRTL: { textAlign: 'right' },
+  preview: { fontSize: FONT_SIZE.sm, lineHeight: 20, marginBottom: SPACING.sm },
+  varRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: SPACING.sm },
+  varChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: RADIUS.sm },
+  varText: { fontSize: FONT_SIZE.xs, fontWeight: '500' },
+  tagRow: { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.sm },
+  tag: { fontSize: FONT_SIZE.xs },
   actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: SPACING.sm,
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.md,
+    borderTopWidth: StyleSheet.hairlineWidth, paddingTop: SPACING.sm,
   },
-  usageText: {
-    fontSize: FONT_SIZE.xs,
-  },
+  usageText: { fontSize: FONT_SIZE.xs },
   actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    borderRadius: RADIUS.sm,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs, borderRadius: RADIUS.sm,
   },
-  actionBtnText: {
-    fontSize: FONT_SIZE.sm,
-    color: '#fff',
-    fontWeight: '600',
+  actionBtnText: { fontSize: FONT_SIZE.sm, color: '#fff', fontWeight: '600' },
+
+  // Compact/Grid styles
+  compactCard: {
+    flex: 1, borderRadius: RADIUS.md, padding: SPACING.md,
+    margin: SPACING.xs, ...SHADOW.card,
+  },
+  compactTop: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: SPACING.xs },
+  compactTitle: { fontSize: FONT_SIZE.sm, fontWeight: '700', marginBottom: 2 },
+  compactPreview: { fontSize: FONT_SIZE.xs, lineHeight: 16, marginBottom: SPACING.sm },
+  compactBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  compactTokens: { fontSize: 9 },
+  compactAction: {
+    width: 24, height: 24, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  audioIcon: {
+    position: 'absolute', top: SPACING.sm, right: SPACING.sm,
+    width: 18, height: 18, borderRadius: 9,
+    alignItems: 'center', justifyContent: 'center',
   },
 });

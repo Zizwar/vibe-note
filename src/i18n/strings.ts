@@ -114,6 +114,79 @@ const strings = {
     // Data section
     data: 'Data',
     customize: 'Customize',
+
+    // Import/Export
+    importBackup: 'Import Backup',
+    importBackupDesc: 'Import prompts from a .proomy or .json file',
+    mergeImport: 'Merge',
+    replaceImport: 'Replace All',
+    importMergeDesc: 'Add imported prompts to existing ones',
+    importReplaceDesc: 'Replace all prompts with imported ones',
+    importSuccess: 'Import successful',
+    importedCount: 'prompts imported',
+
+    // Share
+    sharePrompt: 'Share Prompt',
+    shareAsText: 'Share as Text',
+    shareAsFile: 'Share as File',
+    includeAudio: 'Include audio note?',
+    audioWarning: 'This will share the audio recording along with the prompt',
+    skipAudio: 'Skip Audio',
+
+    // Token counter
+    tokens: 'tokens',
+    tokenCount: 'Token Count',
+
+    // View modes
+    viewList: 'List',
+    viewGrid: 'Grid',
+    viewCategory: 'By Category',
+    filter: 'Filter',
+    sortBy: 'Sort by',
+    newest: 'Newest',
+    oldest: 'Oldest',
+    mostUsed: 'Most Used',
+    alphabetical: 'A-Z',
+
+    // History
+    usageHistory: 'Usage History',
+    noHistory: 'No usage history yet',
+    clearHistory: 'Clear History',
+    historyEntry: 'Used on',
+    withValues: 'with values',
+
+    // AI Chat
+    freeChat: 'Free Chat',
+    chatPlaceholder: 'Ask me anything about prompts...',
+    sendMessage: 'Send',
+    createTemplate: 'Create Template',
+    createTemplateFromChat: 'Would you like to create a prompt template from this conversation?',
+    importFile: 'Import File',
+    supportedFiles: 'Supports .json, .md, .txt files',
+
+    // AI Edit
+    aiEdit: 'AI Edit',
+    aiEditDesc: 'Let AI help improve this prompt',
+    editWithAI: 'Edit with AI',
+    editInstructions: 'Describe what changes you want...',
+
+    // Variable saving
+    saveValue: 'Save as default',
+    valueSaved: 'Value saved to template',
+    addOption: 'Add option',
+    customValue: 'Custom value...',
+
+    // Audio
+    audioNote: 'Audio Note',
+    recordAudio: 'Record Audio',
+    playAudio: 'Play Audio',
+    stopAudio: 'Stop',
+    deleteAudio: 'Delete Audio',
+    audioAttached: 'Audio note attached',
+
+    // Backup
+    backupRestore: 'Backup & Restore',
+    restoreWarning: 'This will modify your prompt library',
   },
   ar: {
     appName: 'بروومي نوت',
@@ -230,6 +303,79 @@ const strings = {
     // Data section
     data: 'البيانات',
     customize: 'تخصيص',
+
+    // Import/Export
+    importBackup: 'استيراد نسخة احتياطية',
+    importBackupDesc: 'استيراد البرومبتات من ملف .proomy أو .json',
+    mergeImport: 'دمج',
+    replaceImport: 'استبدال الكل',
+    importMergeDesc: 'إضافة البرومبتات المستوردة للموجودة',
+    importReplaceDesc: 'استبدال جميع البرومبتات بالمستوردة',
+    importSuccess: 'تم الاستيراد بنجاح',
+    importedCount: 'برومبت تم استيراده',
+
+    // Share
+    sharePrompt: 'مشاركة البرومبت',
+    shareAsText: 'مشاركة كنص',
+    shareAsFile: 'مشاركة كملف',
+    includeAudio: 'تضمين الملاحظة الصوتية؟',
+    audioWarning: 'سيتم مشاركة التسجيل الصوتي مع البرومبت',
+    skipAudio: 'تخطي الصوت',
+
+    // Token counter
+    tokens: 'توكن',
+    tokenCount: 'عدد التوكنات',
+
+    // View modes
+    viewList: 'قائمة',
+    viewGrid: 'شبكة',
+    viewCategory: 'حسب التصنيف',
+    filter: 'تصفية',
+    sortBy: 'ترتيب حسب',
+    newest: 'الأحدث',
+    oldest: 'الأقدم',
+    mostUsed: 'الأكثر استخداماً',
+    alphabetical: 'أبجدي',
+
+    // History
+    usageHistory: 'سجل الاستخدام',
+    noHistory: 'لا يوجد سجل استخدام',
+    clearHistory: 'مسح السجل',
+    historyEntry: 'استُخدم في',
+    withValues: 'بالقيم',
+
+    // AI Chat
+    freeChat: 'دردشة حرة',
+    chatPlaceholder: 'اسألني أي شيء عن البرومبتات...',
+    sendMessage: 'إرسال',
+    createTemplate: 'إنشاء قالب',
+    createTemplateFromChat: 'هل تريد إنشاء قالب برومبت من هذه المحادثة؟',
+    importFile: 'استيراد ملف',
+    supportedFiles: 'يدعم ملفات .json و .md و .txt',
+
+    // AI Edit
+    aiEdit: 'تعديل بالذكاء',
+    aiEditDesc: 'دع الذكاء يساعد في تحسين هذا البرومبت',
+    editWithAI: 'تعديل بالذكاء',
+    editInstructions: 'صِف التعديلات التي تريدها...',
+
+    // Variable saving
+    saveValue: 'حفظ كقيمة افتراضية',
+    valueSaved: 'تم حفظ القيمة في القالب',
+    addOption: 'إضافة خيار',
+    customValue: 'قيمة مخصصة...',
+
+    // Audio
+    audioNote: 'ملاحظة صوتية',
+    recordAudio: 'تسجيل صوت',
+    playAudio: 'تشغيل الصوت',
+    stopAudio: 'إيقاف',
+    deleteAudio: 'حذف الصوت',
+    audioAttached: 'ملاحظة صوتية مرفقة',
+
+    // Backup
+    backupRestore: 'النسخ الاحتياطي والاستعادة',
+    restoreWarning: 'سيؤدي هذا لتعديل مكتبة البرومبتات',
   },
 } as const;
 

@@ -17,6 +17,7 @@ interface PromptRow {
   last_used_at: number | null;
   created_at: number;
   updated_at: number;
+  audio_base64: string | null;
 }
 
 function rowToPrompt(row: PromptRow): ProomyNote {
@@ -36,6 +37,7 @@ function rowToPrompt(row: PromptRow): ProomyNote {
     lastUsedAt: row.last_used_at ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    audioBase64: row.audio_base64 ?? undefined,
   };
 }
 
@@ -92,8 +94,8 @@ export function insertPrompt(
   prompt: Omit<ProomyNote, 'usageCount' | 'lastUsedAt'>
 ): void {
   db.runSync(
-    `INSERT INTO prompts (id, title, content, description, category, platform, tags, folder_id, variables, is_favorite, is_pinned, usage_count, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+    `INSERT INTO prompts (id, title, content, description, category, platform, tags, folder_id, variables, is_favorite, is_pinned, usage_count, created_at, updated_at, audio_base64)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
     [
       prompt.id,
       prompt.title,
@@ -108,6 +110,7 @@ export function insertPrompt(
       prompt.isPinned ? 1 : 0,
       prompt.createdAt,
       prompt.updatedAt,
+      prompt.audioBase64 ?? null,
     ]
   );
 }
@@ -129,6 +132,7 @@ export function updatePrompt(
   if (fields.variables !== undefined) { sets.push('variables = ?'); params.push(JSON.stringify(fields.variables)); }
   if (fields.isFavorite !== undefined) { sets.push('is_favorite = ?'); params.push(fields.isFavorite ? 1 : 0); }
   if (fields.isPinned !== undefined) { sets.push('is_pinned = ?'); params.push(fields.isPinned ? 1 : 0); }
+  if (fields.audioBase64 !== undefined) { sets.push('audio_base64 = ?'); params.push(fields.audioBase64 ?? null); }
 
   sets.push('updated_at = ?');
   params.push(Date.now());
@@ -168,20 +172,25 @@ export function exportAllPrompts(db: SQLiteDatabase): ProomyNote[] {
   return rows.map(rowToPrompt);
 }
 
-export function importPrompts(db: SQLiteDatabase, prompts: ProomyNote[]): number {
+export function importPrompts(db: SQLiteDatabase, prompts: ProomyNote[], mode: 'merge' | 'replace' = 'merge'): number {
+  if (mode === 'replace') {
+    db.runSync('DELETE FROM prompts');
+  }
+
   let imported = 0;
   const stmt = db.prepareSync(
-    `INSERT OR IGNORE INTO prompts (id, title, content, description, category, platform, tags, folder_id, variables, is_favorite, is_pinned, usage_count, last_used_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT OR IGNORE INTO prompts (id, title, content, description, category, platform, tags, folder_id, variables, is_favorite, is_pinned, usage_count, last_used_at, created_at, updated_at, audio_base64)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
 
   try {
     for (const p of prompts) {
       const result = stmt.executeSync(
         p.id, p.title, p.content, p.description ?? null,
-        p.category, p.platform, JSON.stringify(p.tags), p.folderId ?? null,
-        JSON.stringify(p.variables), p.isFavorite ? 1 : 0, p.isPinned ? 1 : 0,
-        p.usageCount, p.lastUsedAt ?? null, p.createdAt, p.updatedAt
+        p.category, p.platform, JSON.stringify(p.tags || []), p.folderId ?? null,
+        JSON.stringify(p.variables || []), p.isFavorite ? 1 : 0, p.isPinned ? 1 : 0,
+        p.usageCount || 0, p.lastUsedAt ?? null, p.createdAt || Date.now(), p.updatedAt || Date.now(),
+        p.audioBase64 ?? null
       );
       if (result.changes > 0) imported++;
     }

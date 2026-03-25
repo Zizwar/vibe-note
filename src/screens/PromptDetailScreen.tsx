@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RADIUS, SPACING, FONT_SIZE, SHADOW, CATEGORIES } from '@/constants';
 import { useThemeColors } from '@/hooks/useTheme';
@@ -8,6 +8,8 @@ import VariableFiller from '@/components/VariableFiller';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { hasVariables } from '@/engine/variableParser';
 import { copyToClipboard } from '@/utils/clipboard';
+import { sharePromptFile } from '@/engine/importExport';
+import { estimateTokens, formatTokenCount } from '@/utils/tokenCounter';
 import { usePromptStore } from '@/stores/promptStore';
 import { useNavigationStore } from '@/stores/navigationStore';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -52,6 +54,7 @@ export default function PromptDetailScreen({ promptId }: Props) {
 
   const catInfo = allCategories.find(c => c.value === prompt.category);
   const hasVars = hasVariables(prompt.content);
+  const tokenCount = estimateTokens(prompt.content);
 
   const handleCopy = async () => {
     await copyToClipboard(prompt.content);
@@ -61,6 +64,22 @@ export default function PromptDetailScreen({ promptId }: Props) {
   const handleDelete = () => {
     deletePrompt(prompt.id);
     goBack();
+  };
+
+  const handleShare = async () => {
+    if (prompt.audioBase64) {
+      Alert.alert(
+        t('sharePrompt', language),
+        t('audioWarning', language),
+        [
+          { text: t('skipAudio', language), onPress: () => sharePromptFile(prompt, false) },
+          { text: t('includeAudio', language), onPress: () => sharePromptFile(prompt, true) },
+          { text: t('cancel', language), style: 'cancel' },
+        ]
+      );
+    } else {
+      await sharePromptFile(prompt, false);
+    }
   };
 
   const formatDate = (ts: number) => new Date(ts).toLocaleDateString();
@@ -87,6 +106,9 @@ export default function PromptDetailScreen({ promptId }: Props) {
           <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={24} color={colors.text} />
         </Pressable>
         <View style={{ flex: 1 }} />
+        <Pressable onPress={handleShare} hitSlop={8} style={styles.headerBtn}>
+          <Ionicons name="share-outline" size={22} color={colors.primary} />
+        </Pressable>
         <Pressable
           onPress={() => navigate('EditPrompt', { promptId: prompt.id })}
           hitSlop={8}
@@ -116,6 +138,12 @@ export default function PromptDetailScreen({ promptId }: Props) {
               <Text style={[styles.pinText, { color: colors.primary }]}>{t('pinned', language)}</Text>
             </View>
           )}
+          {prompt.audioBase64 && (
+            <View style={[styles.pinBadge, { backgroundColor: colors.warning + '15' }]}>
+              <Ionicons name="mic" size={12} color={colors.warning} />
+              <Text style={[styles.pinText, { color: colors.warning }]}>{t('audioNote', language)}</Text>
+            </View>
+          )}
         </View>
 
         <Text style={[styles.title, { color: colors.text }, isRTL && styles.textRTL]}>{prompt.title}</Text>
@@ -125,6 +153,16 @@ export default function PromptDetailScreen({ promptId }: Props) {
             {prompt.description}
           </Text>
         )}
+
+        {/* Token count badge */}
+        <View style={[styles.tokenRow, isRTL && { flexDirection: 'row-reverse' }]}>
+          <View style={[styles.tokenBadge, { backgroundColor: colors.primary + '12' }]}>
+            <Ionicons name="analytics-outline" size={14} color={colors.primary} />
+            <Text style={[styles.tokenText, { color: colors.primary }]}>
+              ~{formatTokenCount(tokenCount)} {t('tokens', language)}
+            </Text>
+          </View>
+        </View>
 
         <View style={[styles.contentCard, { backgroundColor: colors.card }]}>
           {renderContent()}
@@ -208,149 +246,60 @@ export default function PromptDetailScreen({ promptId }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  notFound: {
-    textAlign: 'center',
-    marginTop: 100,
-    fontSize: FONT_SIZE.lg,
-  },
+  container: { flex: 1 },
+  notFound: { textAlign: 'center', marginTop: 100, fontSize: FONT_SIZE.lg },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerRTL: {
-    flexDirection: 'row-reverse',
-  },
-  headerBtn: {
-    marginLeft: SPACING.lg,
-  },
-  body: {
-    flex: 1,
-    padding: SPACING.lg,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    marginBottom: SPACING.md,
-  },
-  rowRTL: {
-    flexDirection: 'row-reverse',
-  },
+  headerRTL: { flexDirection: 'row-reverse' },
+  headerBtn: { marginLeft: SPACING.lg },
+  body: { flex: 1, padding: SPACING.lg },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.md },
+  rowRTL: { flexDirection: 'row-reverse' },
   catBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-    borderRadius: RADIUS.full,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: RADIUS.full,
   },
-  catText: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '600',
-  },
+  catText: { fontSize: FONT_SIZE.xs, fontWeight: '600' },
   pinBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-    borderRadius: RADIUS.full,
+    flexDirection: 'row', alignItems: 'center', gap: 2,
+    paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: RADIUS.full,
   },
-  pinText: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '500',
+  pinText: { fontSize: FONT_SIZE.xs, fontWeight: '500' },
+  title: { fontSize: FONT_SIZE.xxl, fontWeight: '700', marginBottom: SPACING.sm },
+  textRTL: { textAlign: 'right' },
+  description: { fontSize: FONT_SIZE.md, marginBottom: SPACING.lg, lineHeight: 22 },
+  tokenRow: { flexDirection: 'row', marginBottom: SPACING.md },
+  tokenBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs, borderRadius: RADIUS.full,
   },
-  title: {
-    fontSize: FONT_SIZE.xxl,
-    fontWeight: '700',
-    marginBottom: SPACING.sm,
-  },
-  textRTL: {
-    textAlign: 'right',
-  },
-  description: {
-    fontSize: FONT_SIZE.md,
-    marginBottom: SPACING.lg,
-    lineHeight: 22,
-  },
-  contentCard: {
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    marginBottom: SPACING.lg,
-    ...SHADOW.card,
-  },
-  content: {
-    fontSize: FONT_SIZE.md,
-    lineHeight: 24,
-  },
-  variable: {
-    fontWeight: '700',
-  },
-  tagRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING.sm,
-    marginBottom: SPACING.lg,
-  },
-  tag: {
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
-    borderRadius: RADIUS.full,
-  },
-  tagText: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '500',
-  },
-  statsCard: {
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    ...SHADOW.card,
-  },
+  tokenText: { fontSize: FONT_SIZE.xs, fontWeight: '600' },
+  contentCard: { borderRadius: RADIUS.lg, padding: SPACING.lg, marginBottom: SPACING.lg, ...SHADOW.card },
+  content: { fontSize: FONT_SIZE.md, lineHeight: 24 },
+  variable: { fontWeight: '700' },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginBottom: SPACING.lg },
+  tag: { paddingHorizontal: SPACING.sm, paddingVertical: 4, borderRadius: RADIUS.full },
+  tagText: { fontSize: FONT_SIZE.sm, fontWeight: '500' },
+  statsCard: { borderRadius: RADIUS.lg, padding: SPACING.lg, ...SHADOW.card },
   statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: SPACING.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row', justifyContent: 'space-between',
+    paddingVertical: SPACING.sm, borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  statLabel: {
-    fontSize: FONT_SIZE.md,
-  },
-  statValue: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '600',
-  },
+  statLabel: { fontSize: FONT_SIZE.md },
+  statValue: { fontSize: FONT_SIZE.md, fontWeight: '600' },
   bottomActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    padding: SPACING.lg,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.md,
+    padding: SPACING.lg, borderTopWidth: StyleSheet.hairlineWidth,
   },
   favBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: RADIUS.md,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 48, height: 48, borderRadius: RADIUS.md,
+    alignItems: 'center', justifyContent: 'center',
   },
   mainAction: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.sm,
-    paddingVertical: SPACING.md,
-    borderRadius: RADIUS.md,
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: SPACING.sm, paddingVertical: SPACING.md, borderRadius: RADIUS.md,
   },
-  mainActionText: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  mainActionText: { fontSize: FONT_SIZE.lg, fontWeight: '700', color: '#fff' },
 });

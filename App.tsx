@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, BackHandler, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -7,6 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { getDatabase } from '@/database/connection';
 import { initializeDatabase } from '@/database/schema';
 import { seedDatabase } from '@/database/seed';
+import { initHistoryTable } from '@/stores/historyStore';
+import { loadSettingsFromStorage } from '@/stores/settingsStore';
 import Navigator from '@/components/Navigator';
 import BottomTabBar from '@/components/BottomTabBar';
 import { useNavigationStore } from '@/stores/navigationStore';
@@ -19,22 +21,42 @@ const FULL_SCREEN_ROUTES = new Set(['CreatePrompt', 'EditPrompt', 'PromptDetail'
 export default function App() {
   const [ready, setReady] = useState(false);
   const currentScreen = useNavigationStore(s => s.currentScreen);
+  const goBack = useNavigationStore(s => s.goBack);
+  const history = useNavigationStore(s => s.history);
   const language = useSettingsStore(s => s.language);
   const isRTL = useSettingsStore(s => s.isRTL);
   const isDarkMode = useSettingsStore(s => s.isDarkMode);
   const colors = useThemeColors();
 
   useEffect(() => {
-    try {
-      const db = getDatabase();
-      initializeDatabase(db);
-      seedDatabase(db);
-      setReady(true);
-    } catch (e) {
-      console.error('Database initialization failed:', e);
-      setReady(true);
-    }
+    const init = async () => {
+      try {
+        const db = getDatabase();
+        initializeDatabase(db);
+        initHistoryTable(db);
+        seedDatabase(db);
+        await loadSettingsFromStorage();
+        setReady(true);
+      } catch (e) {
+        console.error('Database initialization failed:', e);
+        setReady(true);
+      }
+    };
+    init();
   }, []);
+
+  // Android back button handler
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (history.length > 0) {
+        goBack();
+        return true;
+      }
+      return false;
+    });
+    return () => handler.remove();
+  }, [history, goBack]);
 
   if (!ready) {
     return (
@@ -49,8 +71,8 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]} edges={['top']}>
-          <StatusBar style={isDarkMode ? 'light' : 'light'} />
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]} edges={['top', 'bottom']}>
+          <StatusBar style="light" />
 
           {!isFullScreen && (
             <View style={[styles.header, { backgroundColor: colors.primary }, isRTL && styles.headerRTL]}>

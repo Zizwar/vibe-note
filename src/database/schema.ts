@@ -17,9 +17,17 @@ export function initializeDatabase(db: SQLiteDatabase): void {
       usage_count INTEGER DEFAULT 0,
       last_used_at INTEGER,
       created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
+      updated_at INTEGER NOT NULL,
+      audio_base64 TEXT
     );
   `);
+
+  // Add audio_base64 column if it doesn't exist (migration for existing DBs)
+  try {
+    db.execSync('ALTER TABLE prompts ADD COLUMN audio_base64 TEXT');
+  } catch {
+    // Column already exists
+  }
 
   // FTS5 for full-text search
   try {

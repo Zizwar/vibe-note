@@ -20,6 +20,7 @@ interface PromptState {
     category: PromptCategory;
     platform: AIPlatform;
     tags: string[];
+    audioBase64?: string;
   }) => string;
   updatePrompt: (id: string, data: Partial<ProomyNote>) => void;
   deletePrompt: (id: string) => void;
@@ -74,6 +75,7 @@ export const usePromptStore = create<PromptState>((set, get) => ({
       isPinned: false,
       createdAt: now,
       updatedAt: now,
+      audioBase64: data.audioBase64,
     };
     queries.insertPrompt(db, prompt);
     get().loadPrompts();
