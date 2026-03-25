@@ -31,19 +31,24 @@ async function callGemini(provider: AIProviderConfig, prompt: string): Promise<A
   return { text };
 }
 
-async function callOpenAICompatible(provider: AIProviderConfig, prompt: string): Promise<AIResponse> {
+async function callOpenAICompatible(provider: AIProviderConfig, prompt: string, messages?: Array<{role: string; content: string}>): Promise<AIResponse> {
+  const body: any = {
+    model: provider.model,
+    temperature: 0.7,
+    max_tokens: 2048,
+  };
+  if (messages) {
+    body.messages = messages;
+  } else {
+    body.messages = [{ role: 'user', content: prompt }];
+  }
   const res = await fetch(`${provider.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${provider.apiKey}`,
     },
-    body: JSON.stringify({
-      model: provider.model,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-      max_tokens: 2048,
-    }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   const data = await res.json();
@@ -64,6 +69,21 @@ export async function callAI(prompt: string): Promise<string> {
   return response.text;
 }
 
+export async function callAIChat(messages: Array<{role: string; content: string}>): Promise<string> {
+  const provider = getActiveProvider();
+  if (!provider) throw new Error('No active AI provider configured');
+
+  if (provider.id === 'gemini') {
+    // Gemini uses a flat prompt, concatenate messages
+    const prompt = messages.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n\n');
+    const response = await callGemini(provider, prompt);
+    return response.text;
+  } else {
+    const response = await callOpenAICompatible(provider, '', messages);
+    return response.text;
+  }
+}
+
 export async function testAIConnection(): Promise<boolean> {
   try {
     const result = await callAI('Say "ok" in one word.');
@@ -77,6 +97,23 @@ export function isAIConfigured(): boolean {
   return getActiveProvider() !== null;
 }
 
+const VARIABLE_INSTRUCTIONS = `
+IMPORTANT - Variable Syntax Rules:
+Variables MUST follow this exact syntax:
+- {{variable_name}} - Plain text variable (user fills in)
+- {{variable_name|default_value}} - Text with a default value
+- {{variable_name:option1|option2|option3}} - Dropdown select with options
+
+Examples:
+- {{topic}} - user types any topic
+- {{language|English}} - defaults to "English"
+- {{tone:formal|casual|professional}} - dropdown to pick tone
+- {{word_count|500}} - defaults to 500
+
+ALWAYS use snake_case for variable names. ALWAYS use double curly braces.
+Do NOT use other formats like {var}, [var], <var>, or %var%.
+`;
+
 const categoryValues = CATEGORIES.map(c => c.value).join(', ');
 const platformValues = PLATFORMS.map(p => p.value).join(', ');
 
@@ -89,6 +126,10 @@ export async function analyzePrompt(promptContent: string): Promise<{
 - "quality": a score from 1-10
 - "suggestions": an array of improvement suggestions (max 5)
 - "analysis": a brief analysis of the prompt (2-3 sentences)
+
+${VARIABLE_INSTRUCTIONS}
+
+Check if the prompt uses the correct variable syntax. If not, suggest the correct format.
 
 Return ONLY valid JSON, no markdown, no code blocks.
 
@@ -105,7 +146,13 @@ ${promptContent}`;
 }
 
 export async function improvePrompt(promptContent: string): Promise<string> {
-  const systemPrompt = `You are a prompt engineering expert. Improve the following prompt to make it more effective, clear, and detailed. Keep the same intent but make it better. Return ONLY the improved prompt text, nothing else.
+  const systemPrompt = `You are a prompt engineering expert. Improve the following prompt to make it more effective, clear, and detailed. Keep the same intent but make it better.
+
+${VARIABLE_INSTRUCTIONS}
+
+If the prompt has variables, keep them and ensure they follow the correct syntax. Add more variables where useful.
+
+Return ONLY the improved prompt text, nothing else.
 
 Original prompt:
 ${promptContent}`;
@@ -126,14 +173,18 @@ export async function smartImportPrompt(rawPrompt: string): Promise<{
   const customCats = state.customCategories.map(c => c.value).join(', ');
   const customPlats = state.customPlatforms.map(p => p.value).join(', ');
 
-  const systemPrompt = `You are a prompt organization expert. Analyze the following raw prompt and return a JSON object to organize it. Detect variables (words that should be customizable) and wrap them in {{variable_name}} syntax.
+  const systemPrompt = `You are a prompt organization expert. Analyze the following raw prompt and return a JSON object to organize it.
+
+${VARIABLE_INSTRUCTIONS}
+
+Detect parts of the prompt that should be customizable and wrap them in the correct variable syntax.
 
 Available categories: ${categoryValues}${customCats ? ', ' + customCats : ''}
 Available platforms: ${platformValues}${customPlats ? ', ' + customPlats : ''}
 
 Return ONLY valid JSON with these fields:
 - "title": a concise title (max 60 chars)
-- "content": the prompt with {{variables}} inserted where appropriate
+- "content": the prompt with {{variables}} inserted where appropriate (MUST use {{name}}, {{name|default}}, or {{name:opt1|opt2}} syntax)
 - "description": a brief description of what this prompt does
 - "category": one of the available categories
 - "platform": one of the available platforms (best guess)
@@ -168,14 +219,18 @@ export async function generatePrompt(userDescription: string): Promise<{
   platform: string;
   tags: string[];
 }> {
-  const systemPrompt = `You are a prompt engineering expert. Based on the user's description, create a high-quality, effective prompt. Use {{variable_name}} syntax for customizable parts.
+  const systemPrompt = `You are a prompt engineering expert. Based on the user's description, create a high-quality, effective prompt.
+
+${VARIABLE_INSTRUCTIONS}
+
+Use variables for any customizable parts of the prompt.
 
 Available categories: ${categoryValues}
 Available platforms: ${platformValues}
 
 Return ONLY valid JSON with:
 - "title": a concise title
-- "content": the full prompt with {{variables}}
+- "content": the full prompt with {{variables}} using the correct syntax
 - "description": what this prompt does
 - "category": best matching category
 - "platform": best matching platform
@@ -198,4 +253,22 @@ ${userDescription}`;
       tags: [],
     };
   }
+}
+
+export async function editPromptWithAI(currentContent: string, editInstructions: string): Promise<string> {
+  const systemPrompt = `You are a prompt engineering expert. The user wants to modify an existing prompt.
+
+${VARIABLE_INSTRUCTIONS}
+
+Apply the requested changes to the prompt. Maintain existing variables and their syntax. Add new variables if appropriate based on the edit request.
+
+Return ONLY the modified prompt text, nothing else.
+
+Current prompt:
+${currentContent}
+
+Requested changes:
+${editInstructions}`;
+
+  return await callAI(systemPrompt);
 }

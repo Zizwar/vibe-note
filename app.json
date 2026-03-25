@@ -34,7 +34,41 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "file",
+              "mimeType": "application/json"
+            },
+            {
+              "scheme": "content",
+              "mimeType": "application/json"
+            },
+            {
+              "scheme": "file",
+              "mimeType": "text/plain"
+            },
+            {
+              "scheme": "content",
+              "mimeType": "text/plain"
+            },
+            {
+              "scheme": "file",
+              "pathPattern": ".*\\.proomy"
+            },
+            {
+              "scheme": "content",
+              "pathPattern": ".*\\.proomy"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "plugins": [
@@ -68,7 +102,8 @@
       "expo-asset",
       "expo-secure-store",
       "expo-local-authentication",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-document-picker"
     ],
     "extra": {
       "eas": {

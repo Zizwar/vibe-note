@@ -52,6 +52,7 @@ export interface ProomyNote {
   lastUsedAt?: number;
   createdAt: number;
   updatedAt: number;
+  audioBase64?: string;
 }
 
 export type ScreenName =
