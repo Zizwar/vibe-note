@@ -117,6 +117,44 @@ Do NOT use other formats like {var}, [var], <var>, or %var%.
 const categoryValues = CATEGORIES.map(c => c.value).join(', ');
 const platformValues = PLATFORMS.map(p => p.value).join(', ');
 
+/** Robustly extracts and parses the first JSON object from an AI response */
+function parseAIJson(text: string): any {
+  // 1. Try direct parse
+  try { return JSON.parse(text.trim()); } catch {}
+
+  // 2. Strip markdown code fences and retry
+  const stripped = text
+    .replace(/^```(?:json)?\s*/im, '')
+    .replace(/\s*```\s*$/im, '')
+    .trim();
+  try { return JSON.parse(stripped); } catch {}
+
+  // 3. Extract first balanced JSON object with brace counting
+  const start = text.indexOf('{');
+  if (start !== -1) {
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (escape) { escape = false; continue; }
+      if (ch === '\\' && inString) { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          try { return JSON.parse(text.slice(start, i + 1)); } catch {}
+          break;
+        }
+      }
+    }
+  }
+
+  throw new Error('Could not parse JSON from AI response');
+}
+
 export async function analyzePrompt(promptContent: string): Promise<{
   quality: number;
   suggestions: string[];
@@ -138,8 +176,7 @@ ${promptContent}`;
 
   const result = await callAI(systemPrompt);
   try {
-    const cleaned = result.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
+    return parseAIJson(result);
   } catch {
     return { quality: 5, suggestions: ['Could not parse AI response'], analysis: result.slice(0, 200) };
   }
@@ -196,8 +233,7 @@ ${rawPrompt}`;
 
   const result = await callAI(systemPrompt);
   try {
-    const cleaned = result.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
+    return parseAIJson(result);
   } catch {
     return {
       title: rawPrompt.slice(0, 50),
@@ -241,8 +277,7 @@ ${userDescription}`;
 
   const result = await callAI(systemPrompt);
   try {
-    const cleaned = result.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
+    return parseAIJson(result);
   } catch {
     return {
       title: 'Generated Prompt',

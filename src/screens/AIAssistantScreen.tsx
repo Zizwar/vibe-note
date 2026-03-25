@@ -104,6 +104,41 @@ export default function AIAssistantScreen() {
     setInput(''); setResult(null);
   };
 
+  // Extract a balanced JSON object starting with {"action":"create_template"...}
+  const extractTemplateJson = (text: string): { json: any; cleanText: string } | null => {
+    const marker = '"action":"create_template"';
+    const idx = text.indexOf(marker);
+    if (idx === -1) return null;
+    // Walk back to find opening brace
+    const start = text.lastIndexOf('{', idx);
+    if (start === -1) return null;
+    // Walk forward counting braces to find closing brace
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (escape) { escape = false; continue; }
+      if (ch === '\\' && inString) { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          try {
+            const json = JSON.parse(text.slice(start, i + 1));
+            const cleanText = (text.slice(0, start) + text.slice(i + 1)).trim();
+            return { json, cleanText };
+          } catch {
+            return null;
+          }
+        }
+      }
+    }
+    return null;
+  };
+
   // Chat handlers
   const handleSendChat = async () => {
     if (!chatInput.trim()) return;
@@ -121,14 +156,11 @@ export default function AIAssistantScreen() {
       const response = await callAIChat(allMsgs);
 
       // Check if response contains a template suggestion
-      const templateMatch = response.match(/\{"action":"create_template".*?\}/);
-      if (templateMatch) {
-        const cleanResponse = response.replace(templateMatch[0], '').trim();
-        const templateData = JSON.parse(templateMatch[0]);
-
-        setMessages(prev => [...prev, { role: 'assistant', content: cleanResponse + '\n\n' + (language === 'ar' ? '📋 اقترحت قالبًا - اضغط لإنشائه' : '📋 I suggested a template - tap to create it') }]);
-
-        // Auto-prompt to save
+      const extracted = extractTemplateJson(response);
+      if (extracted) {
+        const { json: templateData, cleanText } = extracted;
+        const displayText = cleanText + '\n\n' + (language === 'ar' ? '📋 اقترح قالبًا - هل تريد حفظه؟' : '📋 A template was suggested - save it?');
+        setMessages(prev => [...prev, { role: 'assistant', content: displayText }]);
         Alert.alert(
           t('createTemplate', language),
           t('createTemplateFromChat', language),
@@ -153,7 +185,8 @@ export default function AIAssistantScreen() {
         setMessages(prev => [...prev, { role: 'assistant', content: response }]);
       }
     } catch (e: any) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${e.message}` }]);
+      const errMsg = language === 'ar' ? 'حدث خطأ في الاتصال بالذكاء الاصطناعي' : 'Failed to connect to AI';
+      setMessages(prev => [...prev, { role: 'assistant', content: errMsg }]);
     }
     setLoading(false);
   };

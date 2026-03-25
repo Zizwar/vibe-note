@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioRecorder, RecordingPresets, requestRecordingPermissionsAsync } from 'expo-audio';
 import { File as FSFile } from 'expo-file-system';
+import MiniAudioPlayer from '@/components/MiniAudioPlayer';
 import { RADIUS, SPACING, FONT_SIZE, CATEGORIES, PLATFORMS } from '@/constants';
 import { useThemeColors } from '@/hooks/useTheme';
 import TagInput from '@/components/TagInput';
@@ -239,17 +240,17 @@ export default function CreatePromptScreen({ promptId }: Props) {
             </Pressable>
           )}
           {audioBase64 && (
-            <>
-              <View style={[styles.audioIndicator, { backgroundColor: colors.success + '15' }]}>
-                <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-                <Text style={[styles.audioIndicatorText, { color: colors.success }]}>{t('audioAttached', language)}</Text>
-              </View>
-              <Pressable onPress={() => setAudioBase64(undefined)} hitSlop={8}>
-                <Ionicons name="trash-outline" size={20} color={colors.danger} />
-              </Pressable>
-            </>
+            <Pressable onPress={() => setAudioBase64(undefined)} hitSlop={8} style={{ marginLeft: 'auto' }}>
+              <Ionicons name="trash-outline" size={20} color={colors.danger} />
+            </Pressable>
           )}
         </View>
+
+        {audioBase64 && (
+          <View style={{ marginBottom: SPACING.md }}>
+            <MiniAudioPlayer audioBase64={audioBase64} />
+          </View>
+        )}
 
         <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('category', language)}</Text>
         <View style={styles.chipGrid}>

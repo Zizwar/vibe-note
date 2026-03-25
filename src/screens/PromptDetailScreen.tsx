@@ -6,6 +6,7 @@ import { useThemeColors } from '@/hooks/useTheme';
 import PlatformBadge from '@/components/PlatformBadge';
 import VariableFiller from '@/components/VariableFiller';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import MiniAudioPlayer from '@/components/MiniAudioPlayer';
 import { hasVariables } from '@/engine/variableParser';
 import { copyToClipboard } from '@/utils/clipboard';
 import { sharePromptFile } from '@/engine/importExport';
@@ -23,6 +24,7 @@ interface Props {
 export default function PromptDetailScreen({ promptId }: Props) {
   const getPromptById = usePromptStore(s => s.getPromptById);
   const toggleFavorite = usePromptStore(s => s.toggleFavorite);
+  const togglePin = usePromptStore(s => s.togglePin);
   const deletePrompt = usePromptStore(s => s.deletePrompt);
   const incrementUsage = usePromptStore(s => s.incrementUsage);
   const navigate = useNavigationStore(s => s.navigate);
@@ -110,6 +112,20 @@ export default function PromptDetailScreen({ promptId }: Props) {
           <Ionicons name="share-outline" size={22} color={colors.primary} />
         </Pressable>
         <Pressable
+          onPress={() => {
+            togglePin(prompt.id);
+            setPrompt(prev => prev ? { ...prev, isPinned: !prev.isPinned } : null);
+          }}
+          hitSlop={8}
+          style={styles.headerBtn}
+        >
+          <Ionicons
+            name={prompt.isPinned ? 'pin' : 'pin-outline'}
+            size={22}
+            color={prompt.isPinned ? colors.primary : colors.textMuted}
+          />
+        </Pressable>
+        <Pressable
           onPress={() => navigate('EditPrompt', { promptId: prompt.id })}
           hitSlop={8}
           style={styles.headerBtn}
@@ -152,6 +168,13 @@ export default function PromptDetailScreen({ promptId }: Props) {
           <Text style={[styles.description, { color: colors.textSecondary }, isRTL && styles.textRTL]}>
             {prompt.description}
           </Text>
+        )}
+
+        {/* Audio player */}
+        {prompt.audioBase64 && (
+          <View style={{ marginBottom: SPACING.md }}>
+            <MiniAudioPlayer audioBase64={prompt.audioBase64} />
+          </View>
         )}
 
         {/* Token count badge */}

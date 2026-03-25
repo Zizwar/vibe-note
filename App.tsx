@@ -1,20 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, BackHandler, Platform } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, BackHandler, Platform, Linking, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
+import { File } from 'expo-file-system';
 import { getDatabase } from '@/database/connection';
 import { initializeDatabase } from '@/database/schema';
 import { seedDatabase } from '@/database/seed';
 import { initHistoryTable } from '@/stores/historyStore';
 import { loadSettingsFromStorage } from '@/stores/settingsStore';
+import { importPrompts } from '@/database/queries';
+import { parseImportJson } from '@/engine/importExport';
+import { usePromptStore } from '@/stores/promptStore';
+import { generateId } from '@/utils/id';
 import Navigator from '@/components/Navigator';
 import BottomTabBar from '@/components/BottomTabBar';
 import { useNavigationStore } from '@/stores/navigationStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useThemeColors } from '@/hooks/useTheme';
 import { t } from '@/i18n/strings';
+import type { ProomyNote } from '@/types';
 
 const FULL_SCREEN_ROUTES = new Set(['CreatePrompt', 'EditPrompt', 'PromptDetail', 'ManageCategories', 'ManagePlatforms', 'AISettings', 'AIAssistant']);
 
@@ -27,6 +33,41 @@ export default function App() {
   const isRTL = useSettingsStore(s => s.isRTL);
   const isDarkMode = useSettingsStore(s => s.isDarkMode);
   const colors = useThemeColors();
+  const loadPrompts = usePromptStore(s => s.loadPrompts);
+
+  const handleOpenFileUrl = async (url: string) => {
+    try {
+      const file = new File(url);
+      const content = await file.text();
+      const parsed = parseImportJson(content);
+      const db = getDatabase();
+      const promptsToImport: ProomyNote[] = parsed.prompts.map((p: any) => ({
+        id: p.id || generateId(),
+        title: p.title || 'Imported Prompt',
+        content: p.content || '',
+        description: p.description,
+        category: p.category || 'other',
+        platform: p.platform || 'chatgpt',
+        tags: p.tags || [],
+        variables: p.variables || [],
+        isFavorite: false,
+        isPinned: false,
+        usageCount: 0,
+        lastUsedAt: undefined,
+        createdAt: p.createdAt || Date.now(),
+        updatedAt: p.updatedAt || Date.now(),
+        audioBase64: p.audioBase64,
+      }));
+      const count = importPrompts(db, promptsToImport, 'merge');
+      loadPrompts();
+      Alert.alert(
+        language === 'ar' ? 'تم الاستيراد' : 'Imported',
+        `${count} ${language === 'ar' ? 'برومبت تم استيراده' : 'prompt(s) imported'}`
+      );
+    } catch (e) {
+      console.error('File open error:', e);
+    }
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -37,12 +78,18 @@ export default function App() {
         seedDatabase(db);
         await loadSettingsFromStorage();
         setReady(true);
+        // Handle file opened while app was closed
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl) handleOpenFileUrl(initialUrl);
       } catch (e) {
         console.error('Database initialization failed:', e);
         setReady(true);
       }
     };
     init();
+    // Handle file opened while app is running
+    const sub = Linking.addEventListener('url', ({ url }) => handleOpenFileUrl(url));
+    return () => sub.remove();
   }, []);
 
   // Android back button handler
