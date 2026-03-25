@@ -30,11 +30,6 @@
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-        "android.permission.CAMERA",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT",
         "android.permission.READ_EXTERNAL_STORAGE"
       ],
       "intentFilters": [
@@ -79,30 +74,8 @@
           "microphonePermission": "Allow access to microphone."
         }
       ],
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow access to camera."
-        }
-      ],
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "Allow access to location."
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/icon.png"
-        }
-      ],
       "expo-sharing",
-      "expo-font",
-      "expo-asset",
       "expo-secure-store",
-      "expo-local-authentication",
-      "expo-web-browser",
       "expo-document-picker"
     ],
     "extra": {
