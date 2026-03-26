@@ -10,11 +10,11 @@ import { copyToClipboard } from '@/utils/clipboard';
 import { usePromptStore } from '@/stores/promptStore';
 import { useNavigationStore } from '@/stores/navigationStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-import type { ProomyNote } from '@/types';
+import type { VibeNote } from '@/types';
 
 interface Props {
-  prompt: ProomyNote;
-  onUse: (prompt: ProomyNote) => void;
+  prompt: VibeNote;
+  onUse: (prompt: VibeNote) => void;
   compact?: boolean;
 }
 
@@ -71,11 +71,6 @@ export default function PromptCard({ prompt, onUse, compact }: Props) {
             </Pressable>
           )}
         </View>
-        {prompt.audioBase64 && (
-          <View style={[styles.audioIcon, { backgroundColor: colors.warning + '15' }]}>
-            <Ionicons name="mic" size={10} color={colors.warning} />
-          </View>
-        )}
       </Pressable>
     );
   }
@@ -95,11 +90,6 @@ export default function PromptCard({ prompt, onUse, compact }: Props) {
             <Text style={[styles.catText, { color: catInfo.color }]}>
               {catInfo.label}
             </Text>
-          </View>
-        )}
-        {prompt.audioBase64 && (
-          <View style={[styles.catBadge, { backgroundColor: colors.warning + '18' }]}>
-            <Ionicons name="mic" size={10} color={colors.warning} />
           </View>
         )}
         <View style={{ flex: 1 }} />
@@ -206,11 +196,6 @@ const styles = StyleSheet.create({
   compactTokens: { fontSize: 9 },
   compactAction: {
     width: 24, height: 24, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  audioIcon: {
-    position: 'absolute', top: SPACING.sm, right: SPACING.sm,
-    width: 18, height: 18, borderRadius: 9,
     alignItems: 'center', justifyContent: 'center',
   },
 });

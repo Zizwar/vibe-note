@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Proomy Note",
-    "slug": "proomy-note",
+    "name": "Vibe Note",
+    "slug": "vibe-note",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,23 +13,15 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.starter.expo55",
-      "infoPlist": {
-        "UIBackgroundModes": [
-          "audio"
-        ]
-      }
+      "bundleIdentifier": "com.vibzcode.note",
+      "infoPlist": {}
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#046f98"
       },
-      "package": "com.starter.expo55",
+      "package": "com.vibzcode.note",
       "permissions": [
-        "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS",
-        "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "android.permission.READ_EXTERNAL_STORAGE"
       ],
       "intentFilters": [
@@ -55,11 +47,11 @@
             },
             {
               "scheme": "file",
-              "pathPattern": ".*\\.proomy"
+              "pathPattern": ".*\\.vibe"
             },
             {
               "scheme": "content",
-              "pathPattern": ".*\\.proomy"
+              "pathPattern": ".*\\.vibe"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
@@ -68,12 +60,6 @@
     },
     "plugins": [
       "expo-sqlite",
-      [
-        "expo-audio",
-        {
-          "microphonePermission": "Allow access to microphone."
-        }
-      ],
       "expo-sharing",
       "expo-secure-store",
       "expo-document-picker"

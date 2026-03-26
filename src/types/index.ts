@@ -36,7 +36,7 @@ export interface VariableDefinition {
   recentValues: string[];
 }
 
-export interface ProomyNote {
+export interface VibeNote {
   id: string;
   title: string;
   content: string;
@@ -52,7 +52,6 @@ export interface ProomyNote {
   lastUsedAt?: number;
   createdAt: number;
   updatedAt: number;
-  audioBase64?: string;
 }
 
 export type ScreenName =

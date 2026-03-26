@@ -20,7 +20,7 @@ import { useNavigationStore } from '@/stores/navigationStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useThemeColors } from '@/hooks/useTheme';
 import { t } from '@/i18n/strings';
-import type { ProomyNote } from '@/types';
+import type { VibeNote } from '@/types';
 
 const FULL_SCREEN_ROUTES = new Set(['CreatePrompt', 'EditPrompt', 'PromptDetail', 'ManageCategories', 'ManagePlatforms', 'AISettings', 'AIAssistant']);
 
@@ -41,7 +41,7 @@ export default function App() {
       const content = await file.text();
       const parsed = parseImportJson(content);
       const db = getDatabase();
-      const promptsToImport: ProomyNote[] = parsed.prompts.map((p: any) => ({
+      const promptsToImport: VibeNote[] = parsed.prompts.map((p: any) => ({
         id: p.id || generateId(),
         title: p.title || 'Imported Prompt',
         content: p.content || '',
@@ -56,7 +56,6 @@ export default function App() {
         lastUsedAt: undefined,
         createdAt: p.createdAt || Date.now(),
         updatedAt: p.updatedAt || Date.now(),
-        audioBase64: p.audioBase64,
       }));
       const count = importPrompts(db, promptsToImport, 'merge');
       loadPrompts();

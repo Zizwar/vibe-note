@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - Vibe Note</title>
+  <meta name="theme-color" content="#046f98">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a2e; background: #f8fafc; line-height: 1.7; }
+    .header { background: #046f98; color: white; padding: 40px 20px; text-align: center; }
+    .header h1 { font-size: 2rem; }
+    .header p { opacity: 0.8; margin-top: 8px; }
+    .content { max-width: 720px; margin: 0 auto; padding: 40px 20px 60px; }
+    h2 { color: #046f98; font-size: 1.3rem; margin: 32px 0 12px; }
+    p, li { color: #334155; font-size: 1rem; margin-bottom: 12px; }
+    ul { padding-left: 24px; }
+    a { color: #046f98; }
+    .back { display: inline-block; margin-top: 32px; color: #046f98; text-decoration: none; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Privacy Policy</h1>
+    <p>Vibe Note - Last updated: March 2026</p>
+  </div>
+  <div class="content">
+    <h2>Introduction</h2>
+    <p>Vibe Note ("the App") is developed by Brahim Bidi. This privacy policy explains how the App handles your information. We are committed to protecting your privacy.</p>
+
+    <h2>Data Collection</h2>
+    <p><strong>Vibe Note does not collect, store, or transmit any personal data to our servers.</strong> The App operates entirely on your device (offline-first).</p>
+    <ul>
+      <li>All prompts, settings, and usage history are stored locally on your device using SQLite.</li>
+      <li>No user accounts or registration is required.</li>
+      <li>No analytics, tracking, or telemetry data is collected.</li>
+      <li>No advertising SDKs are included.</li>
+    </ul>
+
+    <h2>AI Provider Integration</h2>
+    <p>The App allows you to optionally connect to third-party AI providers:</p>
+    <ul>
+      <li><strong>Google Gemini</strong> (generativelanguage.googleapis.com)</li>
+      <li><strong>OpenAI</strong> (api.openai.com)</li>
+      <li><strong>OpenRouter</strong> (openrouter.ai)</li>
+    </ul>
+    <p>When you configure and use an AI provider:</p>
+    <ul>
+      <li>Your API keys are stored securely on your device using encrypted storage (expo-secure-store).</li>
+      <li>Prompt content is sent directly from your device to the selected AI provider's API. Vibe Note does not route or store this traffic.</li>
+      <li>Please refer to each provider's own privacy policy for how they handle your data.</li>
+    </ul>
+
+    <h2>Permissions</h2>
+    <p>The App requests the following permissions:</p>
+    <ul>
+      <li><strong>Storage access</strong>: To import/export prompt backup files from your device.</li>
+    </ul>
+    <p>No other permissions (camera, microphone, location, contacts, etc.) are requested or used.</p>
+
+    <h2>Data Export & Sharing</h2>
+    <p>You can export your prompts as .vibe or .json files. These files are created locally and shared only when you explicitly choose to share them via your device's share functionality.</p>
+
+    <h2>Children's Privacy</h2>
+    <p>The App does not knowingly collect data from children under 13. Since no data is collected from any user, this policy applies universally.</p>
+
+    <h2>Changes to This Policy</h2>
+    <p>We may update this privacy policy from time to time. Changes will be posted on this page with an updated date.</p>
+
+    <h2>Contact</h2>
+    <p>If you have questions about this privacy policy, please contact:</p>
+    <p>Brahim Bidi<br>Website: <a href="https://note.vibzcode.com">note.vibzcode.com</a></p>
+
+    <a class="back" href="index.html">&larr; Back to Home</a>
+  </div>
+</body>
+</html>

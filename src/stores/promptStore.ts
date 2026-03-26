@@ -1,12 +1,12 @@
 import { create } from 'zustand';
-import type { ProomyNote, PromptCategory, AIPlatform } from '@/types';
+import type { VibeNote, PromptCategory, AIPlatform } from '@/types';
 import { getDatabase } from '@/database/connection';
 import * as queries from '@/database/queries';
 import { extractVariables } from '@/engine/variableParser';
 import { generateId } from '@/utils/id';
 
 interface PromptState {
-  prompts: ProomyNote[];
+  prompts: VibeNote[];
   isLoading: boolean;
   searchQuery: string;
   activeCategory: PromptCategory | null;
@@ -20,9 +20,8 @@ interface PromptState {
     category: PromptCategory;
     platform: AIPlatform;
     tags: string[];
-    audioBase64?: string;
   }) => string;
-  updatePrompt: (id: string, data: Partial<ProomyNote>) => void;
+  updatePrompt: (id: string, data: Partial<VibeNote>) => void;
   deletePrompt: (id: string) => void;
   toggleFavorite: (id: string) => void;
   togglePin: (id: string) => void;
@@ -30,7 +29,7 @@ interface PromptState {
   setSearchQuery: (q: string) => void;
   setActiveCategory: (c: PromptCategory | null) => void;
   setActivePlatform: (p: AIPlatform | null) => void;
-  getPromptById: (id: string) => ProomyNote | null;
+  getPromptById: (id: string) => VibeNote | null;
 }
 
 export const usePromptStore = create<PromptState>((set, get) => ({
@@ -62,7 +61,7 @@ export const usePromptStore = create<PromptState>((set, get) => ({
     const now = Date.now();
     const id = generateId();
     const variables = extractVariables(data.content);
-    const prompt: Omit<ProomyNote, 'usageCount' | 'lastUsedAt'> = {
+    const prompt: Omit<VibeNote, 'usageCount' | 'lastUsedAt'> = {
       id,
       title: data.title,
       content: data.content,
@@ -75,7 +74,6 @@ export const usePromptStore = create<PromptState>((set, get) => ({
       isPinned: false,
       createdAt: now,
       updatedAt: now,
-      audioBase64: data.audioBase64,
     };
     queries.insertPrompt(db, prompt);
     get().loadPrompts();

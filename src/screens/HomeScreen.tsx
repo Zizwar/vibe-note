@@ -11,7 +11,7 @@ import { usePromptStore } from '@/stores/promptStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { t } from '@/i18n/strings';
 import { estimateTokens, formatTokenCount } from '@/utils/tokenCounter';
-import type { ProomyNote } from '@/types';
+import type { VibeNote } from '@/types';
 
 type ViewMode = 'list' | 'grid' | 'category';
 type SortMode = 'newest' | 'oldest' | 'mostUsed' | 'alphabetical';
@@ -24,7 +24,7 @@ export default function HomeScreen() {
   const language = useSettingsStore(s => s.language);
   const isRTL = useSettingsStore(s => s.isRTL);
   const customCategories = useSettingsStore(s => s.customCategories);
-  const [fillerPrompt, setFillerPrompt] = useState<ProomyNote | null>(null);
+  const [fillerPrompt, setFillerPrompt] = useState<VibeNote | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [sortMode, setSortMode] = useState<SortMode>('newest');
   const [showFilter, setShowFilter] = useState(false);
@@ -54,7 +54,7 @@ export default function HomeScreen() {
   const allCategories = [...CATEGORIES, ...customCategories];
 
   const getSections = () => {
-    const map = new Map<string, ProomyNote[]>();
+    const map = new Map<string, VibeNote[]>();
     for (const p of sortedPrompts) {
       const cat = p.category;
       if (!map.has(cat)) map.set(cat, []);
@@ -74,7 +74,7 @@ export default function HomeScreen() {
     </View>
   );
 
-  const renderGridItem = ({ item }: { item: ProomyNote }) => (
+  const renderGridItem = ({ item }: { item: VibeNote }) => (
     <PromptCard prompt={item} onUse={setFillerPrompt} compact />
   );
 

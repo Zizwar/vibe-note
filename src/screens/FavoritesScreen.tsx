@@ -8,13 +8,13 @@ import VariableFiller from '@/components/VariableFiller';
 import { usePromptStore } from '@/stores/promptStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { t } from '@/i18n/strings';
-import type { ProomyNote } from '@/types';
+import type { VibeNote } from '@/types';
 
 export default function FavoritesScreen() {
   const prompts = usePromptStore(s => s.prompts);
   const loadPrompts = usePromptStore(s => s.loadPrompts);
   const language = useSettingsStore(s => s.language);
-  const [fillerPrompt, setFillerPrompt] = useState<ProomyNote | null>(null);
+  const [fillerPrompt, setFillerPrompt] = useState<VibeNote | null>(null);
   const colors = useThemeColors();
 
   useEffect(() => {

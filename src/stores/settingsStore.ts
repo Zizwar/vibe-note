@@ -74,9 +74,9 @@ const DEFAULT_AI_PROVIDERS: AIProviderConfig[] = [
   },
 ];
 
-const SETTINGS_KEY = 'proomy_settings';
-const AI_PROVIDERS_KEY = 'proomy_ai_providers';
-const ACTIVE_PROVIDER_KEY = 'proomy_active_provider';
+const SETTINGS_KEY = 'vibe_settings';
+const AI_PROVIDERS_KEY = 'vibe_ai_providers';
+const ACTIVE_PROVIDER_KEY = 'vibe_active_provider';
 
 async function persistSettings(state: Partial<SettingsState>) {
   try {

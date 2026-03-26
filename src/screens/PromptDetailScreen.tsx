@@ -6,7 +6,6 @@ import { useThemeColors } from '@/hooks/useTheme';
 import PlatformBadge from '@/components/PlatformBadge';
 import VariableFiller from '@/components/VariableFiller';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import MiniAudioPlayer from '@/components/MiniAudioPlayer';
 import { hasVariables } from '@/engine/variableParser';
 import { copyToClipboard } from '@/utils/clipboard';
 import { sharePromptFile } from '@/engine/importExport';
@@ -15,7 +14,7 @@ import { usePromptStore } from '@/stores/promptStore';
 import { useNavigationStore } from '@/stores/navigationStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { t } from '@/i18n/strings';
-import type { ProomyNote } from '@/types';
+import type { VibeNote } from '@/types';
 
 interface Props {
   promptId?: string;
@@ -36,7 +35,7 @@ export default function PromptDetailScreen({ promptId }: Props) {
 
   const allCategories = [...CATEGORIES, ...customCategories];
 
-  const [prompt, setPrompt] = useState<ProomyNote | null>(null);
+  const [prompt, setPrompt] = useState<VibeNote | null>(null);
   const [showFiller, setShowFiller] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
 
@@ -69,19 +68,7 @@ export default function PromptDetailScreen({ promptId }: Props) {
   };
 
   const handleShare = async () => {
-    if (prompt.audioBase64) {
-      Alert.alert(
-        t('sharePrompt', language),
-        t('audioWarning', language),
-        [
-          { text: t('skipAudio', language), onPress: () => sharePromptFile(prompt, false) },
-          { text: t('includeAudio', language), onPress: () => sharePromptFile(prompt, true) },
-          { text: t('cancel', language), style: 'cancel' },
-        ]
-      );
-    } else {
-      await sharePromptFile(prompt, false);
-    }
+    await sharePromptFile(prompt, false);
   };
 
   const formatDate = (ts: number) => new Date(ts).toLocaleDateString();
@@ -154,12 +141,6 @@ export default function PromptDetailScreen({ promptId }: Props) {
               <Text style={[styles.pinText, { color: colors.primary }]}>{t('pinned', language)}</Text>
             </View>
           )}
-          {prompt.audioBase64 && (
-            <View style={[styles.pinBadge, { backgroundColor: colors.warning + '15' }]}>
-              <Ionicons name="mic" size={12} color={colors.warning} />
-              <Text style={[styles.pinText, { color: colors.warning }]}>{t('audioNote', language)}</Text>
-            </View>
-          )}
         </View>
 
         <Text style={[styles.title, { color: colors.text }, isRTL && styles.textRTL]}>{prompt.title}</Text>
@@ -168,13 +149,6 @@ export default function PromptDetailScreen({ promptId }: Props) {
           <Text style={[styles.description, { color: colors.textSecondary }, isRTL && styles.textRTL]}>
             {prompt.description}
           </Text>
-        )}
-
-        {/* Audio player */}
-        {prompt.audioBase64 && (
-          <View style={{ marginBottom: SPACING.md }}>
-            <MiniAudioPlayer audioBase64={prompt.audioBase64} />
-          </View>
         )}
 
         {/* Token count badge */}

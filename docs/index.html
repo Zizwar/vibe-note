@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vibe Note - Your Smart Prompt Library</title>
+  <meta name="description" content="Vibe Note is the smart prompt manager for AI tools. Save, organize, and use your prompts with dynamic variables, smart categories, and AI-powered tools.">
+  <meta name="theme-color" content="#046f98">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a2e; background: #f8fafc; }
+    .hero {
+      background: linear-gradient(135deg, #046f98 0%, #0891b2 100%);
+      color: white; text-align: center; padding: 80px 20px 60px;
+    }
+    .hero h1 { font-size: 3rem; font-weight: 800; margin-bottom: 12px; }
+    .hero p { font-size: 1.25rem; opacity: 0.9; max-width: 600px; margin: 0 auto 32px; line-height: 1.6; }
+    .badges { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px;
+      border-radius: 12px; font-weight: 700; font-size: 1rem; text-decoration: none;
+      transition: transform 0.2s;
+    }
+    .badge:hover { transform: translateY(-2px); }
+    .badge-play { background: #fff; color: #046f98; }
+    .badge-github { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+    .features { max-width: 900px; margin: 0 auto; padding: 60px 20px; }
+    .features h2 { text-align: center; font-size: 2rem; margin-bottom: 40px; color: #046f98; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; }
+    .card {
+      background: white; border-radius: 16px; padding: 28px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
+    }
+    .card h3 { font-size: 1.1rem; margin-bottom: 8px; color: #046f98; }
+    .card p { font-size: 0.95rem; color: #64748b; line-height: 1.6; }
+    .icon { font-size: 2rem; margin-bottom: 12px; display: block; }
+    footer {
+      text-align: center; padding: 40px 20px; color: #94a3b8; font-size: 0.9rem;
+      border-top: 1px solid #e2e8f0;
+    }
+    footer a { color: #046f98; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    .footer-links { display: flex; gap: 20px; justify-content: center; margin-bottom: 12px; }
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 2rem; }
+      .hero p { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <h1>Vibe Note</h1>
+    <p>The smart prompt library for AI power users. Save, organize, and instantly use your prompts with dynamic variables, smart categories, and AI-powered tools.</p>
+    <div class="badges">
+      <a class="badge badge-play" href="https://play.google.com/store/apps/details?id=com.vibzcode.note" target="_blank">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 0 1-.61-.92V2.734a1 1 0 0 1 .609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.199l2.302 2.302-2.302 2.302-2.698-2.302 2.698-2.302zM5.864 2.658L16.8 8.99l-2.302 2.302-8.635-8.635z"/></svg>
+        Google Play
+      </a>
+      <a class="badge badge-github" href="https://github.com/zizwar/proomy-note" target="_blank">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </section>
+
+  <section class="features">
+    <h2>Why Vibe Note?</h2>
+    <div class="grid">
+      <div class="card">
+        <span class="icon">&#x2699;&#xFE0F;</span>
+        <h3>Dynamic Variables</h3>
+        <p>Use {{name}}, {{name|default}}, and {{name:opt1|opt2}} to create reusable templates. Fill values quickly and copy the final prompt.</p>
+      </div>
+      <div class="card">
+        <span class="icon">&#x1F4C2;</span>
+        <h3>Smart Organization</h3>
+        <p>Classify prompts by category (code, writing, marketing...) and AI platform (ChatGPT, Claude, Gemini...). Add tags for fast filtering.</p>
+      </div>
+      <div class="card">
+        <span class="icon">&#x2728;</span>
+        <h3>AI-Powered Tools</h3>
+        <p>Chat with AI, analyze prompt quality, auto-import and organize raw prompts, and generate new templates from descriptions.</p>
+      </div>
+      <div class="card">
+        <span class="icon">&#x1F4CA;</span>
+        <h3>Usage History</h3>
+        <p>Track how often you use each prompt. Quickly reuse previous variable values from your usage history.</p>
+      </div>
+      <div class="card">
+        <span class="icon">&#x1F310;</span>
+        <h3>Bilingual Support</h3>
+        <p>Full English and Arabic support with RTL layout. Switch languages anytime from settings.</p>
+      </div>
+      <div class="card">
+        <span class="icon">&#x1F512;</span>
+        <h3>Private & Offline</h3>
+        <p>All data stored locally on your device. No account required. API keys encrypted with secure storage. Your prompts stay yours.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-links">
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="https://github.com/zizwar/proomy-note">GitHub</a>
+    </div>
+    <p>&copy; 2024-2026 Brahim Bidi. All rights reserved.</p>
+  </footer>
+</body>
+</html>

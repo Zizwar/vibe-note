@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView, Switch, StyleSheet, Alert, Modal } from 'react-native';
+import { View, Text, Pressable, ScrollView, Switch, StyleSheet, Alert, Modal, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RADIUS, SPACING, FONT_SIZE, SHADOW } from '@/constants';
 import { useThemeColors } from '@/hooks/useTheme';
@@ -10,7 +10,7 @@ import { getDatabase } from '@/database/connection';
 import { exportAllPrompts, importPrompts } from '@/database/queries';
 import { shareExport, pickAndReadFile, parseImportJson } from '@/engine/importExport';
 import { t } from '@/i18n/strings';
-import type { ProomyNote } from '@/types';
+import type { VibeNote } from '@/types';
 import { generateId } from '@/utils/id';
 
 export default function SettingsScreen() {
@@ -45,7 +45,7 @@ export default function SettingsScreen() {
       const db = getDatabase();
 
       // Ensure each prompt has an id and timestamps
-      const promptsToImport: ProomyNote[] = parsed.prompts.map((p: any) => ({
+      const promptsToImport: VibeNote[] = parsed.prompts.map((p: any) => ({
         id: p.id || generateId(),
         title: p.title || 'Imported Prompt',
         content: p.content || '',
@@ -60,7 +60,6 @@ export default function SettingsScreen() {
         lastUsedAt: p.lastUsedAt,
         createdAt: p.createdAt || Date.now(),
         updatedAt: p.updatedAt || Date.now(),
-        audioBase64: p.audioBase64,
       }));
 
       const count = importPrompts(db, promptsToImport, mode);
@@ -177,9 +176,25 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* Links */}
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }, isRTL && styles.textRTL]}>
+        {language === 'ar' ? 'روابط' : 'Links'}
+      </Text>
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <MenuItem icon="globe-outline" label={language === 'ar' ? 'الموقع الرسمي' : 'Website'} onPress={() => Linking.openURL('https://note.vibzcode.com')} />
+        <View style={[styles.separator, { backgroundColor: colors.border }]} />
+        <MenuItem icon="shield-checkmark-outline" label={language === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'} onPress={() => Linking.openURL('https://note.vibzcode.com/privacy.html')} />
+        <View style={[styles.separator, { backgroundColor: colors.border }]} />
+        <MenuItem icon="document-text-outline" label={language === 'ar' ? 'شروط الاستخدام' : 'Terms of Service'} onPress={() => Linking.openURL('https://note.vibzcode.com/terms.html')} />
+        <View style={[styles.separator, { backgroundColor: colors.border }]} />
+        <MenuItem icon="logo-github" label="GitHub" onPress={() => Linking.openURL('https://github.com/zizwar/proomy-note')} />
+      </View>
+
       {/* Branding */}
-      <Text style={[styles.branding, { color: colors.primary }]}>Proomy Note</Text>
-      <Text style={[styles.brandingSub, { color: colors.textMuted }]}>Your smart prompt library</Text>
+      <Text style={[styles.branding, { color: colors.primary }]}>Vibe Note</Text>
+      <Text style={[styles.brandingSub, { color: colors.textMuted }]}>
+        {language === 'ar' ? 'مكتبتك الذكية للبرومبتات' : 'Your smart prompt library'}
+      </Text>
 
       {/* Import Modal */}
       <Modal visible={showImportModal} transparent animationType="fade" onRequestClose={() => setShowImportModal(false)}>
