@@ -1,6 +1,6 @@
 const strings = {
   en: {
-    appName: 'Proomy Note',
+    appName: 'Vibe Note',
     home: 'Home',
     favorites: 'Favorites',
     settings: 'Settings',
@@ -117,7 +117,7 @@ const strings = {
 
     // Import/Export
     importBackup: 'Import Backup',
-    importBackupDesc: 'Import prompts from a .proomy or .json file',
+    importBackupDesc: 'Import prompts from a .vibe or .json file',
     mergeImport: 'Merge',
     replaceImport: 'Replace All',
     importMergeDesc: 'Add imported prompts to existing ones',
@@ -129,9 +129,6 @@ const strings = {
     sharePrompt: 'Share Prompt',
     shareAsText: 'Share as Text',
     shareAsFile: 'Share as File',
-    includeAudio: 'Include audio note?',
-    audioWarning: 'This will share the audio recording along with the prompt',
-    skipAudio: 'Skip Audio',
 
     // Token counter
     tokens: 'tokens',
@@ -162,7 +159,7 @@ const strings = {
     createTemplate: 'Create Template',
     createTemplateFromChat: 'Would you like to create a prompt template from this conversation?',
     importFile: 'Import File',
-    supportedFiles: 'Supports .json, .md, .txt files',
+    supportedFiles: 'Supports .json, .vibe, .md, .txt files',
 
     // AI Edit
     aiEdit: 'AI Edit',
@@ -176,20 +173,12 @@ const strings = {
     addOption: 'Add option',
     customValue: 'Custom value...',
 
-    // Audio
-    audioNote: 'Audio Note',
-    recordAudio: 'Record Audio',
-    playAudio: 'Play Audio',
-    stopAudio: 'Stop',
-    deleteAudio: 'Delete Audio',
-    audioAttached: 'Audio note attached',
-
     // Backup
     backupRestore: 'Backup & Restore',
     restoreWarning: 'This will modify your prompt library',
   },
   ar: {
-    appName: 'بروومي نوت',
+    appName: 'فايب نوت',
     home: 'الرئيسية',
     favorites: 'المفضلة',
     settings: 'الإعدادات',
@@ -306,7 +295,7 @@ const strings = {
 
     // Import/Export
     importBackup: 'استيراد نسخة احتياطية',
-    importBackupDesc: 'استيراد البرومبتات من ملف .proomy أو .json',
+    importBackupDesc: 'استيراد البرومبتات من ملف .vibe أو .json',
     mergeImport: 'دمج',
     replaceImport: 'استبدال الكل',
     importMergeDesc: 'إضافة البرومبتات المستوردة للموجودة',
@@ -318,9 +307,6 @@ const strings = {
     sharePrompt: 'مشاركة البرومبت',
     shareAsText: 'مشاركة كنص',
     shareAsFile: 'مشاركة كملف',
-    includeAudio: 'تضمين الملاحظة الصوتية؟',
-    audioWarning: 'سيتم مشاركة التسجيل الصوتي مع البرومبت',
-    skipAudio: 'تخطي الصوت',
 
     // Token counter
     tokens: 'توكن',
@@ -351,7 +337,7 @@ const strings = {
     createTemplate: 'إنشاء قالب',
     createTemplateFromChat: 'هل تريد إنشاء قالب برومبت من هذه المحادثة؟',
     importFile: 'استيراد ملف',
-    supportedFiles: 'يدعم ملفات .json و .md و .txt',
+    supportedFiles: 'يدعم ملفات .json و .vibe و .md و .txt',
 
     // AI Edit
     aiEdit: 'تعديل بالذكاء',
@@ -364,14 +350,6 @@ const strings = {
     valueSaved: 'تم حفظ القيمة في القالب',
     addOption: 'إضافة خيار',
     customValue: 'قيمة مخصصة...',
-
-    // Audio
-    audioNote: 'ملاحظة صوتية',
-    recordAudio: 'تسجيل صوت',
-    playAudio: 'تشغيل الصوت',
-    stopAudio: 'إيقاف',
-    deleteAudio: 'حذف الصوت',
-    audioAttached: 'ملاحظة صوتية مرفقة',
 
     // Backup
     backupRestore: 'النسخ الاحتياطي والاستعادة',

@@ -13,10 +13,10 @@ import { usePromptStore } from '@/stores/promptStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { t } from '@/i18n/strings';
-import type { ProomyNote } from '@/types';
+import type { VibeNote } from '@/types';
 
 interface Props {
-  prompt: ProomyNote | null;
+  prompt: VibeNote | null;
   visible: boolean;
   onClose: () => void;
 }
@@ -25,8 +25,11 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [showHistory, setShowHistory] = useState(false);
   const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
+  // Local content state to reflect real-time updates
+  const [localContent, setLocalContent] = useState('');
   const incrementUsage = usePromptStore(s => s.incrementUsage);
   const updatePrompt = usePromptStore(s => s.updatePrompt);
+  const getPromptById = usePromptStore(s => s.getPromptById);
   const language = useSettingsStore(s => s.language);
   const isRTL = useSettingsStore(s => s.isRTL);
   const addHistory = useHistoryStore(s => s.addHistory);
@@ -34,25 +37,26 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
   const history = useHistoryStore(s => s.history);
   const colors = useThemeColors();
 
-  const variables = prompt ? extractVariables(prompt.content) : [];
+  const variables = localContent ? extractVariables(localContent) : [];
 
   useEffect(() => {
-    if (prompt) {
+    if (prompt && visible) {
+      setLocalContent(prompt.content);
       const defaults: Record<string, string> = {};
       for (const v of extractVariables(prompt.content)) {
         defaults[v.name] = v.defaultValue || '';
       }
       setValues(defaults);
+      setShowHistory(false);
       loadHistory(prompt.id);
     }
-  }, [prompt?.id]);
+  }, [prompt?.id, visible]);
 
   const handleCopyWithValues = async () => {
     if (!prompt) return;
-    const final = buildFinalPrompt(prompt.content, values);
+    const final = buildFinalPrompt(localContent, values);
     await copyToClipboard(final);
     incrementUsage(prompt.id);
-    // Save to history
     addHistory({
       promptId: prompt.id,
       promptTitle: prompt.title,
@@ -64,50 +68,39 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
 
   const handleCopyRaw = async () => {
     if (!prompt) return;
-    await copyToClipboard(prompt.content);
+    await copyToClipboard(localContent);
     incrementUsage(prompt.id);
     onClose();
   };
 
   const handleShare = async () => {
     if (!prompt) return;
-    const hasAudio = !!prompt.audioBase64;
-    if (hasAudio) {
-      Alert.alert(
-        t('sharePrompt', language),
-        t('audioWarning', language),
-        [
-          { text: t('skipAudio', language), onPress: () => sharePromptFile(prompt, false) },
-          { text: t('includeAudio', language), onPress: () => sharePromptFile(prompt, true) },
-          { text: t('cancel', language), style: 'cancel' },
-        ]
-      );
-    } else {
-      await sharePromptFile(prompt, false);
-    }
+    await sharePromptFile(prompt, false);
   };
 
   const handleSaveValue = (varName: string, value: string) => {
     if (!prompt) return;
-    // Update the variable's default value in the prompt content
-    const newContent = prompt.content.replace(
+    const newContent = localContent.replace(
       new RegExp(`\\{\\{${varName}(?:[:|][^}]*)?\\}\\}`),
       value ? `{{${varName}|${value}}}` : `{{${varName}}}`
     );
     updatePrompt(prompt.id, { content: newContent });
+    setLocalContent(newContent);
     Alert.alert(t('valueSaved', language));
   };
 
   const handleAddOption = (varName: string) => {
     const newVal = customInputs[varName]?.trim();
     if (!newVal || !prompt) return;
-    // Add option to the select variable
     const regex = new RegExp(`\\{\\{${varName}:([^}]*)\\}\\}`);
-    const match = prompt.content.match(regex);
+    const match = localContent.match(regex);
     if (match) {
-      const newContent = prompt.content.replace(regex, `{{${varName}:${match[1]}|${newVal}}}`);
+      const newContent = localContent.replace(regex, `{{${varName}:${match[1]}|${newVal}}}`);
       updatePrompt(prompt.id, { content: newContent });
+      setLocalContent(newContent);
       setCustomInputs(prev => ({ ...prev, [varName]: '' }));
+      // Auto-select the new value
+      setValues(prev => ({ ...prev, [varName]: newVal }));
     }
   };
 
@@ -116,7 +109,7 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
     setShowHistory(false);
   };
 
-  const tokenCount = prompt ? estimateTokens(buildFinalPrompt(prompt.content, values)) : 0;
+  const tokenCount = localContent ? estimateTokens(buildFinalPrompt(localContent, values)) : 0;
 
   const promptHistory = history.filter(h => h.promptId === prompt?.id);
 
@@ -129,19 +122,19 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
               {prompt?.title || t('fillVariables', language)}
             </Text>
             <View style={[styles.headerActions, isRTL && { flexDirection: 'row-reverse' }]}>
-              {/* Token count */}
               <View style={[styles.tokenBadge, { backgroundColor: colors.primary + '15' }]}>
                 <Text style={[styles.tokenText, { color: colors.primary }]}>
                   {formatTokenCount(tokenCount)} {t('tokens', language)}
                 </Text>
               </View>
-              {/* History button */}
-              {promptHistory.length > 0 && (
-                <Pressable onPress={() => setShowHistory(!showHistory)} hitSlop={8}>
-                  <Ionicons name="time-outline" size={22} color={colors.primary} />
-                </Pressable>
-              )}
-              {/* Share button */}
+              {/* History button - always visible */}
+              <Pressable
+                onPress={() => setShowHistory(!showHistory)}
+                hitSlop={8}
+                style={[styles.historyBtn, showHistory && { backgroundColor: colors.primary + '15' }]}
+              >
+                <Ionicons name="time-outline" size={22} color={showHistory ? colors.primary : colors.textSecondary} />
+              </Pressable>
               <Pressable onPress={handleShare} hitSlop={8}>
                 <Ionicons name="share-outline" size={22} color={colors.primary} />
               </Pressable>
@@ -153,26 +146,35 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
 
           {/* History panel */}
           {showHistory && (
-            <View style={[styles.historyPanel, { backgroundColor: colors.background }]}>
+            <View style={[styles.historyPanel, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
               <Text style={[styles.historyTitle, { color: colors.text }]}>{t('usageHistory', language)}</Text>
-              <FlatList
-                data={promptHistory.slice(0, 10)}
-                keyExtractor={item => item.id}
-                style={{ maxHeight: 150 }}
-                renderItem={({ item }) => (
-                  <Pressable
-                    style={[styles.historyItem, { borderColor: colors.border }]}
-                    onPress={() => handleApplyHistory(item)}
-                  >
-                    <Text style={[styles.historyDate, { color: colors.textSecondary }]}>
-                      {new Date(item.timestamp).toLocaleDateString()} {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
-                    <Text style={[styles.historyValues, { color: colors.textMuted }]} numberOfLines={1}>
-                      {Object.entries(item.values).map(([k, v]) => `${k}: ${v}`).join(', ')}
-                    </Text>
-                  </Pressable>
-                )}
-              />
+              {promptHistory.length > 0 ? (
+                <FlatList
+                  data={promptHistory.slice(0, 10)}
+                  keyExtractor={item => item.id}
+                  style={{ maxHeight: 180 }}
+                  renderItem={({ item }) => (
+                    <Pressable
+                      style={[styles.historyItem, { borderColor: colors.border, backgroundColor: colors.card }]}
+                      onPress={() => handleApplyHistory(item)}
+                    >
+                      <View style={[styles.historyItemHeader, isRTL && { flexDirection: 'row-reverse' }]}>
+                        <Text style={[styles.historyDate, { color: colors.textSecondary }]}>
+                          {new Date(item.timestamp).toLocaleDateString()} {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                        <View style={[styles.useBtn, { backgroundColor: colors.primary }]}>
+                          <Text style={styles.useBtnText}>{t('usePrompt', language)}</Text>
+                        </View>
+                      </View>
+                      <Text style={[styles.historyValues, { color: colors.textMuted }]} numberOfLines={2}>
+                        {Object.entries(item.values).map(([k, v]) => `${k}: ${v}`).join(' | ')}
+                      </Text>
+                    </Pressable>
+                  )}
+                />
+              ) : (
+                <Text style={[styles.noHistory, { color: colors.textMuted }]}>{t('noHistory', language)}</Text>
+              )}
             </View>
           )}
 
@@ -183,7 +185,6 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
                   <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>
                     {v.label || v.name.replace(/_/g, ' ')}
                   </Text>
-                  {/* Save button */}
                   <Pressable
                     style={[styles.saveBtn, { borderColor: colors.primary }]}
                     onPress={() => handleSaveValue(v.name, values[v.name] || '')}
@@ -214,7 +215,6 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
                         </Pressable>
                       ))}
                     </View>
-                    {/* Custom option input */}
                     <View style={[styles.addOptionRow, isRTL && { flexDirection: 'row-reverse' }]}>
                       <TextInput
                         style={[styles.addOptionInput, { borderColor: colors.border, color: colors.text, backgroundColor: colors.background }]}
@@ -271,14 +271,24 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
   tokenBadge: { paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: RADIUS.full },
   tokenText: { fontSize: FONT_SIZE.xs, fontWeight: '600' },
+  historyBtn: { padding: 4, borderRadius: RADIUS.sm },
   historyPanel: { padding: SPACING.md, borderBottomWidth: StyleSheet.hairlineWidth },
   historyTitle: { fontSize: FONT_SIZE.md, fontWeight: '700', marginBottom: SPACING.sm },
   historyItem: {
     paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md,
-    borderWidth: 1, borderRadius: RADIUS.md, marginBottom: SPACING.xs,
+    borderWidth: 1, borderRadius: RADIUS.md, marginBottom: SPACING.sm,
+  },
+  historyItemHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: 4,
   },
   historyDate: { fontSize: FONT_SIZE.xs, fontWeight: '600' },
   historyValues: { fontSize: FONT_SIZE.xs, marginTop: 2 },
+  useBtn: {
+    paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: RADIUS.sm,
+  },
+  useBtnText: { color: '#fff', fontSize: FONT_SIZE.xs, fontWeight: '700' },
+  noHistory: { fontSize: FONT_SIZE.sm, textAlign: 'center', paddingVertical: SPACING.md },
   body: { padding: SPACING.lg },
   field: { marginBottom: SPACING.lg },
   labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING.xs },

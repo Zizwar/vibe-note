@@ -104,15 +104,12 @@ export default function AIAssistantScreen() {
     setInput(''); setResult(null);
   };
 
-  // Extract a balanced JSON object starting with {"action":"create_template"...}
   const extractTemplateJson = (text: string): { json: any; cleanText: string } | null => {
     const marker = '"action":"create_template"';
     const idx = text.indexOf(marker);
     if (idx === -1) return null;
-    // Walk back to find opening brace
     const start = text.lastIndexOf('{', idx);
     if (start === -1) return null;
-    // Walk forward counting braces to find closing brace
     let depth = 0;
     let inString = false;
     let escape = false;
@@ -139,7 +136,6 @@ export default function AIAssistantScreen() {
     return null;
   };
 
-  // Chat handlers
   const handleSendChat = async () => {
     if (!chatInput.trim()) return;
     const userMsg: ChatMessage = { role: 'user', content: chatInput.trim() };
@@ -150,12 +146,11 @@ export default function AIAssistantScreen() {
     try {
       const systemMsg = {
         role: 'system' as any,
-        content: `You are Proomy, a helpful AI assistant specialized in prompt engineering. Help users create, improve, and understand AI prompts. If the user seems to want a prompt template, offer to create one. When you think a template should be created, include the following JSON at the end of your message on its own line: {"action":"create_template","title":"...","content":"...","category":"...","platform":"..."} Use {{variable_name}} syntax for variables.`
+        content: `You are Vibe, a helpful AI assistant specialized in prompt engineering. Help users create, improve, and understand AI prompts. If the user seems to want a prompt template, offer to create one. When you think a template should be created, include the following JSON at the end of your message on its own line: {"action":"create_template","title":"...","content":"...","category":"...","platform":"..."} Use {{variable_name}} syntax for variables.`
       };
       const allMsgs = [systemMsg, ...newMessages];
       const response = await callAIChat(allMsgs);
 
-      // Check if response contains a template suggestion
       const extracted = extractTemplateJson(response);
       if (extracted) {
         const { json: templateData, cleanText } = extracted;
@@ -211,8 +206,12 @@ export default function AIAssistantScreen() {
   if (!aiReady) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.aiHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <View style={[styles.aiHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }, isRTL && styles.aiHeaderRTL]}>
+          <Pressable onPress={goBack} hitSlop={8}>
+            <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={24} color={colors.text} />
+          </Pressable>
           <Text style={[styles.aiHeaderTitle, { color: colors.text }]}>{t('aiAssistant', language)}</Text>
+          <View style={{ width: 24 }} />
         </View>
         <View style={styles.emptyState}>
           <Ionicons name="sparkles-outline" size={64} color={colors.textMuted} />
@@ -230,11 +229,16 @@ export default function AIAssistantScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
-      {/* Header */}
-      <View style={[styles.aiHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      {/* Header with back button */}
+      <View style={[styles.aiHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }, isRTL && styles.aiHeaderRTL]}>
+        <Pressable onPress={goBack} hitSlop={8}>
+          <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={24} color={colors.text} />
+        </Pressable>
         <Text style={[styles.aiHeaderTitle, { color: colors.text }]}>{t('aiAssistant', language)}</Text>
+        <View style={{ width: 24 }} />
       </View>
 
       {/* Tab Selector */}
@@ -319,7 +323,7 @@ export default function AIAssistantScreen() {
         </View>
       ) : (
         /* Tools View */
-        <ScrollView style={styles.toolBody} contentContainerStyle={styles.toolContent}>
+        <ScrollView style={styles.toolBody} contentContainerStyle={styles.toolContent} keyboardShouldPersistTaps="handled">
           {/* Description */}
           <Text style={[styles.desc, { color: colors.textMuted }]}>
             {activeTab === 'import' && t('smartImportDesc', language)}
@@ -461,9 +465,10 @@ export default function AIAssistantScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   aiHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  aiHeaderRTL: { flexDirection: 'row-reverse' },
   aiHeaderTitle: { fontSize: FONT_SIZE.xl, fontWeight: '700' },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.xxxl },
   emptyTitle: { fontSize: FONT_SIZE.xl, fontWeight: '600', marginTop: SPACING.lg, textAlign: 'center' },

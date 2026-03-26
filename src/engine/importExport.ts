@@ -1,9 +1,9 @@
 import { Paths, File } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
-import type { ProomyNote } from '@/types';
+import type { VibeNote } from '@/types';
 
-export function exportToJson(prompts: ProomyNote[]): string {
+export function exportToJson(prompts: VibeNote[]): string {
   return JSON.stringify(
     {
       version: 1,
@@ -17,7 +17,7 @@ export function exportToJson(prompts: ProomyNote[]): string {
   );
 }
 
-export function exportPromptToProomy(prompt: ProomyNote): string {
+export function exportPromptToVibe(prompt: VibeNote): string {
   const slug = prompt.title
     .toLowerCase()
     .replace(/[^a-z0-9\u0600-\u06FF]+/g, '-')
@@ -36,7 +36,6 @@ export function exportPromptToProomy(prompt: ProomyNote): string {
         platform: prompt.platform,
         tags: prompt.tags,
         variables: prompt.variables,
-        audioBase64: prompt.audioBase64,
       },
     },
     null,
@@ -44,10 +43,10 @@ export function exportPromptToProomy(prompt: ProomyNote): string {
   );
 }
 
-export function parseImportJson(jsonString: string): { type: 'backup' | 'prompt'; prompts: Partial<ProomyNote>[] } {
+export function parseImportJson(jsonString: string): { type: 'backup' | 'prompt'; prompts: Partial<VibeNote>[] } {
   const data = JSON.parse(jsonString);
 
-  // Single prompt format (.proomy)
+  // Single prompt format (.vibe)
   if (data.type === 'prompt' && data.prompt) {
     return { type: 'prompt', prompts: [data.prompt] };
   }
@@ -66,10 +65,10 @@ export function parseImportJson(jsonString: string): { type: 'backup' | 'prompt'
   throw new Error('Invalid import format');
 }
 
-export async function shareExport(prompts: ProomyNote[]): Promise<void> {
+export async function shareExport(prompts: VibeNote[]): Promise<void> {
   const json = exportToJson(prompts);
   const date = new Date().toISOString().split('T')[0];
-  const filename = `backup-${date}.proomy`;
+  const filename = `backup-${date}.vibe`;
   const file = new File(Paths.cache, filename);
 
   file.write(json);
@@ -78,27 +77,19 @@ export async function shareExport(prompts: ProomyNote[]): Promise<void> {
   if (isAvailable) {
     await Sharing.shareAsync(file.uri, {
       mimeType: 'application/json',
-      dialogTitle: 'Export Proomy Backup',
+      dialogTitle: 'Export Vibe Backup',
     });
   }
 }
 
-export async function sharePromptFile(prompt: ProomyNote, includeAudio: boolean = true): Promise<void> {
-  const exportData = exportPromptToProomy(prompt);
-  // If not including audio, strip it
-  let finalData = exportData;
-  if (!includeAudio) {
-    const parsed = JSON.parse(exportData);
-    delete parsed.prompt.audioBase64;
-    finalData = JSON.stringify(parsed, null, 2);
-  }
-
+export async function sharePromptFile(prompt: VibeNote, _includeAudio: boolean = false): Promise<void> {
+  const finalData = exportPromptToVibe(prompt);
   const slug = prompt.title
     .toLowerCase()
     .replace(/[^a-z0-9\u0600-\u06FF]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 50);
-  const filename = `${slug}.proomy`;
+  const filename = `${slug}.vibe`;
   const file = new File(Paths.cache, filename);
 
   file.write(finalData);
@@ -107,7 +98,7 @@ export async function sharePromptFile(prompt: ProomyNote, includeAudio: boolean 
   if (isAvailable) {
     await Sharing.shareAsync(file.uri, {
       mimeType: 'application/json',
-      dialogTitle: 'Share Proomy Prompt',
+      dialogTitle: 'Share Vibe Prompt',
     });
   }
 }

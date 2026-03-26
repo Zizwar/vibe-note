@@ -4,9 +4,6 @@ import {
   Modal, Alert, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAudioRecorder, RecordingPresets, requestRecordingPermissionsAsync } from 'expo-audio';
-import { File as FSFile } from 'expo-file-system';
-import MiniAudioPlayer from '@/components/MiniAudioPlayer';
 import { RADIUS, SPACING, FONT_SIZE, CATEGORIES, PLATFORMS } from '@/constants';
 import { useThemeColors } from '@/hooks/useTheme';
 import TagInput from '@/components/TagInput';
@@ -44,16 +41,10 @@ export default function CreatePromptScreen({ promptId }: Props) {
   const [category, setCategory] = useState<PromptCategory>('other');
   const [platform, setPlatform] = useState<AIPlatform>('chatgpt');
   const [tags, setTags] = useState<string[]>([]);
-  const [audioBase64, setAudioBase64] = useState<string | undefined>(undefined);
-
   // AI Edit modal
   const [showAIEdit, setShowAIEdit] = useState(false);
   const [aiEditInstructions, setAiEditInstructions] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
-
-  // Audio
-  const [isRecording, setIsRecording] = useState(false);
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   useEffect(() => {
     if (promptId) {
@@ -65,7 +56,6 @@ export default function CreatePromptScreen({ promptId }: Props) {
         setCategory(prompt.category);
         setPlatform(prompt.platform);
         setTags(prompt.tags);
-        setAudioBase64(prompt.audioBase64);
       }
     }
   }, [promptId]);
@@ -88,7 +78,6 @@ export default function CreatePromptScreen({ promptId }: Props) {
         category,
         platform,
         tags,
-        audioBase64,
       });
     } else {
       addPrompt({
@@ -115,35 +104,6 @@ export default function CreatePromptScreen({ promptId }: Props) {
       Alert.alert('Error', e.message || 'AI edit failed');
     }
     setAiLoading(false);
-  };
-
-  const handleStartRecording = async () => {
-    try {
-      const status = await requestRecordingPermissionsAsync();
-      if (!status.granted) {
-        Alert.alert('Permission required', 'Audio recording permission is needed');
-        return;
-      }
-      recorder.record();
-      setIsRecording(true);
-    } catch (e) {
-      console.error('Recording error:', e);
-    }
-  };
-
-  const handleStopRecording = async () => {
-    try {
-      await recorder.stop();
-      setIsRecording(false);
-      if (recorder.uri) {
-        const file = new FSFile(recorder.uri);
-        const base64 = await file.base64();
-        setAudioBase64(base64);
-      }
-    } catch (e) {
-      console.error('Stop recording error:', e);
-      setIsRecording(false);
-    }
   };
 
   const tokenCount = estimateTokens(content);
@@ -218,39 +178,6 @@ export default function CreatePromptScreen({ promptId }: Props) {
           placeholder={t('description', language)}
           placeholderTextColor={colors.textMuted}
         />
-
-        {/* Audio Note */}
-        <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('audioNote', language)}</Text>
-        <View style={[styles.audioRow, isRTL && { flexDirection: 'row-reverse' }]}>
-          {!isRecording ? (
-            <Pressable
-              style={[styles.audioBtn, { backgroundColor: colors.danger + '15' }]}
-              onPress={handleStartRecording}
-            >
-              <Ionicons name="mic" size={20} color={colors.danger} />
-              <Text style={[styles.audioBtnText, { color: colors.danger }]}>{t('recordAudio', language)}</Text>
-            </Pressable>
-          ) : (
-            <Pressable
-              style={[styles.audioBtn, { backgroundColor: colors.danger }]}
-              onPress={handleStopRecording}
-            >
-              <Ionicons name="stop" size={20} color="#fff" />
-              <Text style={[styles.audioBtnText, { color: '#fff' }]}>{t('stopAudio', language)}</Text>
-            </Pressable>
-          )}
-          {audioBase64 && (
-            <Pressable onPress={() => setAudioBase64(undefined)} hitSlop={8} style={{ marginLeft: 'auto' }}>
-              <Ionicons name="trash-outline" size={20} color={colors.danger} />
-            </Pressable>
-          )}
-        </View>
-
-        {audioBase64 && (
-          <View style={{ marginBottom: SPACING.md }}>
-            <MiniAudioPlayer audioBase64={audioBase64} />
-          </View>
-        )}
 
         <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('category', language)}</Text>
         <View style={styles.chipGrid}>
@@ -370,17 +297,6 @@ const styles = StyleSheet.create({
   inputRTL: { textAlign: 'right' },
   contentInput: { minHeight: 120 },
   hint: { fontSize: FONT_SIZE.xs, marginTop: SPACING.xs, fontStyle: 'italic' },
-  audioRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, flexWrap: 'wrap' },
-  audioBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-    paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderRadius: RADIUS.md,
-  },
-  audioBtnText: { fontSize: FONT_SIZE.sm, fontWeight: '600' },
-  audioIndicator: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs, borderRadius: RADIUS.full,
-  },
-  audioIndicatorText: { fontSize: FONT_SIZE.xs, fontWeight: '500' },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
