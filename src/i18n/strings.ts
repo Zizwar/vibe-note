@@ -35,6 +35,7 @@ const strings = {
     language: 'Language',
     english: 'English',
     arabic: 'Arabic',
+    french: 'Français',
     exportPrompts: 'Export Prompts',
     importPrompts: 'Import Prompts',
     about: 'About',
@@ -46,10 +47,11 @@ const strings = {
     created: 'Created',
     pinned: 'Pinned',
 
-    // Dark mode
+    // Dark mode / themes
     appearance: 'Appearance',
     darkMode: 'Dark Mode',
     darkModeDesc: 'Switch between light and dark themes',
+    colorTheme: 'Color Theme',
 
     // Manage categories/providers
     manageCategories: 'Manage Categories',
@@ -87,9 +89,9 @@ const strings = {
     noAIProviderDesc: 'Set up an AI provider in Settings to unlock smart features',
 
     // AI Assistant features
-    analyzePrompt: 'Analyze Prompt',
-    improvePrompt: 'Improve Prompt',
-    generatePrompt: 'Generate Prompt',
+    analyzePrompt: 'Analyze',
+    improvePrompt: 'Improve',
+    generatePrompt: 'Generate',
     smartImport: 'Smart Import',
     smartImportDesc: 'Paste a prompt and AI will organize it for you',
     pastePrompt: 'Paste your prompt here...',
@@ -153,7 +155,7 @@ const strings = {
     withValues: 'with values',
 
     // AI Chat
-    freeChat: 'Free Chat',
+    freeChat: 'Chat',
     chatPlaceholder: 'Ask me anything about prompts...',
     sendMessage: 'Send',
     createTemplate: 'Create Template',
@@ -176,6 +178,32 @@ const strings = {
     // Backup
     backupRestore: 'Backup & Restore',
     restoreWarning: 'This will modify your prompt library',
+
+    // Links & info
+    links: 'Links',
+    website: 'Website',
+    privacyPolicy: 'Privacy Policy',
+    termsOfService: 'Terms of Service',
+    contactEmail: 'Contact',
+    keysEncrypted: 'API keys are encrypted and stored securely on your device',
+    ipRestrictionTip: 'Tip: Restrict your API key by IP for extra security',
+
+    // Help
+    help: 'Help',
+    helpTitle: 'How to use Vibe Note',
+    helpVariables: 'Dynamic Variables',
+    helpVariablesDesc: 'Create reusable templates with variables:\n• {{name}} — text input\n• {{name|default}} — with default value\n• {{name:opt1|opt2}} — dropdown selection',
+    helpAI: 'AI Features',
+    helpAIDesc: 'Use AI to analyze, improve, generate, and smart-import prompts. Chat with AI about prompt engineering.',
+    helpSetup: 'Getting Started with AI',
+    helpSetupDesc: '1. Get a free Gemini API key from Google AI Studio (free with Google account)\n2. Go to Settings → AI Settings\n3. Paste your API key for Gemini\n4. Start using AI features!',
+    helpSecurity: 'Security',
+    helpSecurityDesc: 'Your API keys are encrypted using secure device storage (expo-secure-store). No data is sent to our servers. Tip: Restrict your API key by IP address in the provider\'s dashboard for extra security.',
+    helpClose: 'Got it!',
+
+    // FAB
+    quickAdd: 'Quick Add',
+    aiAssistedAdd: 'AI-Assisted',
   },
   ar: {
     appName: 'فايب نوت',
@@ -213,6 +241,7 @@ const strings = {
     language: 'اللغة',
     english: 'English',
     arabic: 'العربية',
+    french: 'Français',
     exportPrompts: 'تصدير البرومبتات',
     importPrompts: 'استيراد البرومبتات',
     about: 'حول التطبيق',
@@ -224,10 +253,11 @@ const strings = {
     created: 'تاريخ الإنشاء',
     pinned: 'مثبّت',
 
-    // Dark mode
+    // Dark mode / themes
     appearance: 'المظهر',
     darkMode: 'الوضع الليلي',
     darkModeDesc: 'التبديل بين المظهر الفاتح والداكن',
+    colorTheme: 'سمة الألوان',
 
     // Manage categories/providers
     manageCategories: 'إدارة التصنيفات',
@@ -265,9 +295,9 @@ const strings = {
     noAIProviderDesc: 'أعد مزود ذكاء في الإعدادات لتفعيل الميزات الذكية',
 
     // AI Assistant features
-    analyzePrompt: 'تحليل البرومبت',
-    improvePrompt: 'تحسين البرومبت',
-    generatePrompt: 'إنشاء برومبت',
+    analyzePrompt: 'تحليل',
+    improvePrompt: 'تحسين',
+    generatePrompt: 'إنشاء',
     smartImport: 'استيراد ذكي',
     smartImportDesc: 'الصق برومبت وسيقوم الذكاء بتنظيمه لك',
     pastePrompt: 'الصق البرومبت هنا...',
@@ -331,7 +361,7 @@ const strings = {
     withValues: 'بالقيم',
 
     // AI Chat
-    freeChat: 'دردشة حرة',
+    freeChat: 'دردشة',
     chatPlaceholder: 'اسألني أي شيء عن البرومبتات...',
     sendMessage: 'إرسال',
     createTemplate: 'إنشاء قالب',
@@ -354,13 +384,245 @@ const strings = {
     // Backup
     backupRestore: 'النسخ الاحتياطي والاستعادة',
     restoreWarning: 'سيؤدي هذا لتعديل مكتبة البرومبتات',
+
+    // Links & info
+    links: 'روابط',
+    website: 'الموقع الرسمي',
+    privacyPolicy: 'سياسة الخصوصية',
+    termsOfService: 'شروط الاستخدام',
+    contactEmail: 'تواصل معنا',
+    keysEncrypted: 'مفاتيح API مشفرة ومخزنة بأمان على جهازك',
+    ipRestrictionTip: 'نصيحة: قيّد مفتاح API حسب عنوان IP لأمان إضافي',
+
+    // Help
+    help: 'مساعدة',
+    helpTitle: 'كيفية استخدام فايب نوت',
+    helpVariables: 'المتغيرات الديناميكية',
+    helpVariablesDesc: 'أنشئ قوالب قابلة لإعادة الاستخدام بالمتغيرات:\n• {{name}} — حقل نصي\n• {{name|default}} — مع قيمة افتراضية\n• {{name:opt1|opt2}} — قائمة اختيار',
+    helpAI: 'ميزات الذكاء الاصطناعي',
+    helpAIDesc: 'استخدم الذكاء لتحليل، تحسين، إنشاء، واستيراد البرومبتات بذكاء. دردش مع الذكاء حول هندسة البرومبتات.',
+    helpSetup: 'البدء مع الذكاء الاصطناعي',
+    helpSetupDesc: '1. احصل على مفتاح Gemini مجاني من Google AI Studio (مجاني مع حساب Google)\n2. اذهب إلى الإعدادات ← إعدادات الذكاء\n3. الصق مفتاح API لـ Gemini\n4. ابدأ باستخدام ميزات الذكاء!',
+    helpSecurity: 'الأمان',
+    helpSecurityDesc: 'مفاتيح API مشفرة باستخدام التخزين الآمن للجهاز. لا ترسل أي بيانات لخوادمنا. نصيحة: قيّد مفتاح API حسب عنوان IP في لوحة المزود لأمان إضافي.',
+    helpClose: 'فهمت!',
+
+    // FAB
+    quickAdd: 'إضافة سريعة',
+    aiAssistedAdd: 'بمساعدة الذكاء',
+  },
+  fr: {
+    appName: 'Vibe Note',
+    home: 'Accueil',
+    favorites: 'Favoris',
+    settings: 'Paramètres',
+    search: 'Rechercher des prompts...',
+    all: 'Tous',
+    newPrompt: 'Nouveau Prompt',
+    editPrompt: 'Modifier le Prompt',
+    promptDetail: 'Détails du Prompt',
+    title: 'Titre',
+    content: 'Contenu du prompt',
+    description: 'Description (optionnel)',
+    category: 'Catégorie',
+    platform: 'Plateforme',
+    tags: 'Tags',
+    addTag: 'Ajouter un tag...',
+    save: 'Enregistrer',
+    cancel: 'Annuler',
+    delete: 'Supprimer',
+    deleteConfirm: 'Êtes-vous sûr de vouloir supprimer ce prompt ?',
+    deleteTitle: 'Supprimer le Prompt',
+    copy: 'Copier',
+    copyRaw: 'Copier brut',
+    usePrompt: 'Utiliser',
+    copied: 'Copié !',
+    fillVariables: 'Remplir les variables',
+    copyWithValues: 'Copier avec les valeurs',
+    noPrompts: 'Aucun prompt',
+    noPromptsDesc: 'Appuyez sur + pour créer votre premier prompt',
+    noFavorites: 'Aucun favori',
+    noFavoritesDesc: 'Ajoutez un prompt en favori pour le voir ici',
+    variableHint: 'Utilisez {{nom}} pour les variables, {{nom|défaut}} pour les valeurs par défaut, {{nom:opt1|opt2}} pour les listes',
+    language: 'Langue',
+    english: 'English',
+    arabic: 'العربية',
+    french: 'Français',
+    exportPrompts: 'Exporter les Prompts',
+    importPrompts: 'Importer les Prompts',
+    about: 'À propos',
+    version: 'Version',
+    totalPrompts: 'Total des Prompts',
+    usageCount: 'Utilisé',
+    times: 'fois',
+    lastUsed: 'Dernière utilisation',
+    created: 'Créé le',
+    pinned: 'Épinglé',
+
+    // Dark mode / themes
+    appearance: 'Apparence',
+    darkMode: 'Mode Sombre',
+    darkModeDesc: 'Basculer entre les thèmes clair et sombre',
+    colorTheme: 'Thème de couleur',
+
+    // Manage categories/providers
+    manageCategories: 'Gérer les Catégories',
+    managePlatforms: 'Gérer les Plateformes',
+    addCategory: 'Ajouter une Catégorie',
+    addPlatform: 'Ajouter une Plateforme',
+    editCategory: 'Modifier la Catégorie',
+    editPlatform: 'Modifier la Plateforme',
+    categoryName: 'Nom de la Catégorie',
+    categoryNameAr: 'Nom en Arabe',
+    platformName: 'Nom de la Plateforme',
+    iconName: 'Nom de l\'icône',
+    colorHex: 'Couleur (hex)',
+    customItems: 'Éléments personnalisés',
+    defaultItems: 'Éléments par défaut',
+    noCustomItems: 'Aucun élément personnalisé',
+    deleteItemConfirm: 'Êtes-vous sûr de vouloir supprimer cet élément ?',
+
+    // AI features
+    aiAssistant: 'Assistant IA',
+    aiSettings: 'Paramètres IA',
+    aiProviders: 'Fournisseurs IA',
+    configureAI: 'Configurer l\'IA',
+    apiKey: 'Clé API',
+    model: 'Modèle',
+    baseUrl: 'URL de base',
+    getApiKey: 'Obtenir une clé API',
+    geminiDesc: 'Niveau gratuit disponible - recommandé pour commencer',
+    openrouterDesc: 'Accédez à plusieurs modèles IA avec une seule clé API',
+    openaiDesc: 'GPT-4o et autres modèles OpenAI',
+    testConnection: 'Tester la connexion',
+    connectionSuccess: 'Connexion réussie !',
+    connectionFailed: 'Échec de la connexion. Vérifiez votre clé API.',
+    noAIProvider: 'Aucun fournisseur IA configuré',
+    noAIProviderDesc: 'Configurez un fournisseur IA dans les Paramètres pour débloquer les fonctionnalités intelligentes',
+
+    // AI Assistant features
+    analyzePrompt: 'Analyser',
+    improvePrompt: 'Améliorer',
+    generatePrompt: 'Générer',
+    smartImport: 'Import intelligent',
+    smartImportDesc: 'Collez un prompt et l\'IA l\'organisera pour vous',
+    pastePrompt: 'Collez votre prompt ici...',
+    analyzing: 'Analyse en cours...',
+    improving: 'Amélioration en cours...',
+    generating: 'Génération en cours...',
+    importingSmartly: 'Traitement en cours...',
+    aiSuggestion: 'Suggestion IA',
+    suggestedTitle: 'Titre suggéré',
+    suggestedCategory: 'Catégorie suggérée',
+    suggestedPlatform: 'Plateforme suggérée',
+    suggestedTags: 'Tags suggérés',
+    detectedVariables: 'Variables détectées',
+    promptAnalysis: 'Analyse du Prompt',
+    promptQuality: 'Score de qualité',
+    suggestions: 'Suggestions',
+    acceptSuggestion: 'Accepter et enregistrer',
+    generateNew: 'Générer un nouveau Prompt',
+    generateDesc: 'Décrivez ce dont vous avez besoin et l\'IA créera le prompt',
+    describePrompt: 'Décrivez le prompt dont vous avez besoin...',
+
+    // Data section
+    data: 'Données',
+    customize: 'Personnaliser',
+
+    // Import/Export
+    importBackup: 'Importer une sauvegarde',
+    importBackupDesc: 'Importer des prompts depuis un fichier .vibe ou .json',
+    mergeImport: 'Fusionner',
+    replaceImport: 'Tout remplacer',
+    importMergeDesc: 'Ajouter les prompts importés aux existants',
+    importReplaceDesc: 'Remplacer tous les prompts par les importés',
+    importSuccess: 'Importation réussie',
+    importedCount: 'prompts importés',
+
+    // Share
+    sharePrompt: 'Partager le Prompt',
+    shareAsText: 'Partager comme texte',
+    shareAsFile: 'Partager comme fichier',
+
+    // Token counter
+    tokens: 'tokens',
+    tokenCount: 'Nombre de tokens',
+
+    // View modes
+    viewList: 'Liste',
+    viewGrid: 'Grille',
+    viewCategory: 'Par Catégorie',
+    filter: 'Filtrer',
+    sortBy: 'Trier par',
+    newest: 'Plus récent',
+    oldest: 'Plus ancien',
+    mostUsed: 'Plus utilisé',
+    alphabetical: 'A-Z',
+
+    // History
+    usageHistory: 'Historique d\'utilisation',
+    noHistory: 'Aucun historique d\'utilisation',
+    clearHistory: 'Effacer l\'historique',
+    historyEntry: 'Utilisé le',
+    withValues: 'avec les valeurs',
+
+    // AI Chat
+    freeChat: 'Discussion',
+    chatPlaceholder: 'Posez-moi des questions sur les prompts...',
+    sendMessage: 'Envoyer',
+    createTemplate: 'Créer un modèle',
+    createTemplateFromChat: 'Souhaitez-vous créer un modèle de prompt à partir de cette conversation ?',
+    importFile: 'Importer un fichier',
+    supportedFiles: 'Supporte les fichiers .json, .vibe, .md, .txt',
+
+    // AI Edit
+    aiEdit: 'Édition IA',
+    aiEditDesc: 'Laissez l\'IA vous aider à améliorer ce prompt',
+    editWithAI: 'Éditer avec l\'IA',
+    editInstructions: 'Décrivez les modifications souhaitées...',
+
+    // Variable saving
+    saveValue: 'Enregistrer comme défaut',
+    valueSaved: 'Valeur enregistrée dans le modèle',
+    addOption: 'Ajouter une option',
+    customValue: 'Valeur personnalisée...',
+
+    // Backup
+    backupRestore: 'Sauvegarde et restauration',
+    restoreWarning: 'Cela modifiera votre bibliothèque de prompts',
+
+    // Links & info
+    links: 'Liens',
+    website: 'Site web',
+    privacyPolicy: 'Politique de confidentialité',
+    termsOfService: 'Conditions d\'utilisation',
+    contactEmail: 'Contact',
+    keysEncrypted: 'Les clés API sont chiffrées et stockées en toute sécurité sur votre appareil',
+    ipRestrictionTip: 'Conseil : Restreignez votre clé API par IP pour plus de sécurité',
+
+    // Help
+    help: 'Aide',
+    helpTitle: 'Comment utiliser Vibe Note',
+    helpVariables: 'Variables dynamiques',
+    helpVariablesDesc: 'Créez des modèles réutilisables avec des variables :\n• {{nom}} — champ texte\n• {{nom|défaut}} — avec valeur par défaut\n• {{nom:opt1|opt2}} — liste déroulante',
+    helpAI: 'Fonctionnalités IA',
+    helpAIDesc: 'Utilisez l\'IA pour analyser, améliorer, générer et importer intelligemment des prompts. Discutez avec l\'IA sur l\'ingénierie de prompts.',
+    helpSetup: 'Démarrer avec l\'IA',
+    helpSetupDesc: '1. Obtenez une clé API Gemini gratuite depuis Google AI Studio (gratuit avec un compte Google)\n2. Allez dans Paramètres → Paramètres IA\n3. Collez votre clé API pour Gemini\n4. Commencez à utiliser les fonctionnalités IA !',
+    helpSecurity: 'Sécurité',
+    helpSecurityDesc: 'Vos clés API sont chiffrées avec le stockage sécurisé de l\'appareil. Aucune donnée n\'est envoyée à nos serveurs. Conseil : Restreignez votre clé API par adresse IP dans le tableau de bord du fournisseur pour plus de sécurité.',
+    helpClose: 'Compris !',
+
+    // FAB
+    quickAdd: 'Ajout rapide',
+    aiAssistedAdd: 'Assisté par IA',
   },
 } as const;
 
 export type StringKey = keyof (typeof strings)['en'];
 
-export function t(key: StringKey, lang: 'en' | 'ar' = 'en'): string {
-  return strings[lang][key] || strings.en[key] || key;
+export function t(key: StringKey, lang: 'en' | 'ar' | 'fr' = 'en'): string {
+  return (strings[lang] as any)?.[key] || strings.en[key] || key;
 }
 
 export default strings;

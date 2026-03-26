@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import type { CategoryItem } from '@/constants/categories';
 import type { PlatformItem } from '@/constants/platforms';
+import type { ColorTheme } from '@/constants/theme';
 
 export interface AIProviderConfig {
   id: string;
@@ -13,9 +14,10 @@ export interface AIProviderConfig {
 }
 
 interface SettingsState {
-  language: 'en' | 'ar';
+  language: 'en' | 'ar' | 'fr';
   isRTL: boolean;
   isDarkMode: boolean;
+  colorTheme: ColorTheme;
 
   // Custom categories & providers
   customCategories: CategoryItem[];
@@ -26,9 +28,10 @@ interface SettingsState {
   activeAIProvider: string | null;
 
   // Actions
-  setLanguage: (lang: 'en' | 'ar') => void;
+  setLanguage: (lang: 'en' | 'ar' | 'fr') => void;
   toggleDarkMode: () => void;
   setDarkMode: (val: boolean) => void;
+  setColorTheme: (theme: ColorTheme) => void;
 
   // Custom categories
   addCustomCategory: (cat: CategoryItem) => void;
@@ -83,6 +86,7 @@ async function persistSettings(state: Partial<SettingsState>) {
     const data = {
       language: state.language,
       isDarkMode: state.isDarkMode,
+      colorTheme: state.colorTheme,
       customCategories: state.customCategories,
       customPlatforms: state.customPlatforms,
     };
@@ -106,10 +110,12 @@ export async function loadSettingsFromStorage() {
     const settingsJson = await SecureStore.getItemAsync(SETTINGS_KEY);
     if (settingsJson) {
       const data = JSON.parse(settingsJson);
+      const colorTheme = data.colorTheme || (data.isDarkMode ? 'dark' : 'light');
       useSettingsStore.setState({
         language: data.language || 'en',
         isRTL: data.language === 'ar',
-        isDarkMode: data.isDarkMode || false,
+        isDarkMode: colorTheme === 'dark',
+        colorTheme,
         customCategories: data.customCategories || [],
         customPlatforms: data.customPlatforms || [],
       });
@@ -134,6 +140,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   language: 'en',
   isRTL: false,
   isDarkMode: false,
+  colorTheme: 'light' as ColorTheme,
   customCategories: [],
   customPlatforms: [],
   aiProviders: DEFAULT_AI_PROVIDERS,
@@ -145,14 +152,20 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   toggleDarkMode: () => {
-    const newVal = !get().isDarkMode;
-    set({ isDarkMode: newVal });
-    persistSettings({ ...get(), isDarkMode: newVal });
+    const newTheme = get().colorTheme === 'dark' ? 'light' : 'dark';
+    set({ isDarkMode: newTheme === 'dark', colorTheme: newTheme });
+    persistSettings({ ...get(), isDarkMode: newTheme === 'dark', colorTheme: newTheme });
   },
 
   setDarkMode: (val) => {
-    set({ isDarkMode: val });
-    persistSettings({ ...get(), isDarkMode: val });
+    const newTheme = val ? 'dark' : 'light';
+    set({ isDarkMode: val, colorTheme: newTheme });
+    persistSettings({ ...get(), isDarkMode: val, colorTheme: newTheme });
+  },
+
+  setColorTheme: (theme) => {
+    set({ colorTheme: theme, isDarkMode: theme === 'dark' });
+    persistSettings({ ...get(), colorTheme: theme, isDarkMode: theme === 'dark' });
   },
 
   // Custom categories
