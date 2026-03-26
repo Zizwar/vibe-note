@@ -1,7 +1,7 @@
-import { COLORS, DARK_COLORS } from '@/constants/theme';
+import { THEME_PRESETS } from '@/constants/theme';
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export function useThemeColors() {
-  const isDarkMode = useSettingsStore(s => s.isDarkMode);
-  return isDarkMode ? DARK_COLORS : COLORS;
+  const colorTheme = useSettingsStore(s => s.colorTheme);
+  return THEME_PRESETS[colorTheme] || THEME_PRESETS.light;
 }

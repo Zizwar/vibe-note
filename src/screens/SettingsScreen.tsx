@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView, Switch, StyleSheet, Alert, Modal, Linking } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, Alert, Modal, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RADIUS, SPACING, FONT_SIZE, SHADOW } from '@/constants';
+import { THEME_META, type ColorTheme } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/useTheme';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { usePromptStore } from '@/stores/promptStore';
@@ -13,12 +14,14 @@ import { t } from '@/i18n/strings';
 import type { VibeNote } from '@/types';
 import { generateId } from '@/utils/id';
 
+const APP_VERSION = require('../../package.json').version;
+
 export default function SettingsScreen() {
   const language = useSettingsStore(s => s.language);
   const setLanguage = useSettingsStore(s => s.setLanguage);
   const isRTL = useSettingsStore(s => s.isRTL);
-  const isDarkMode = useSettingsStore(s => s.isDarkMode);
-  const toggleDarkMode = useSettingsStore(s => s.toggleDarkMode);
+  const colorTheme = useSettingsStore(s => s.colorTheme);
+  const setColorTheme = useSettingsStore(s => s.setColorTheme);
   const prompts = usePromptStore(s => s.prompts);
   const loadPrompts = usePromptStore(s => s.loadPrompts);
   const navigate = useNavigationStore(s => s.navigate);
@@ -44,7 +47,6 @@ export default function SettingsScreen() {
       const parsed = parseImportJson(fileResult.content);
       const db = getDatabase();
 
-      // Ensure each prompt has an id and timestamps
       const promptsToImport: VibeNote[] = parsed.prompts.map((p: any) => ({
         id: p.id || generateId(),
         title: p.title || 'Imported Prompt',
@@ -81,25 +83,35 @@ export default function SettingsScreen() {
     </Pressable>
   );
 
+  const themeKeys: ColorTheme[] = ['light', 'ocean', 'forest', 'sunset', 'dark'];
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      {/* Appearance */}
+      {/* Color Theme */}
       <Text style={[styles.sectionTitle, { color: colors.textSecondary }, isRTL && styles.textRTL]}>
-        {t('appearance', language)}
+        {t('colorTheme', language)}
       </Text>
       <View style={[styles.card, { backgroundColor: colors.card }]}>
-        <View style={styles.menuItem}>
-          <Ionicons name={isDarkMode ? 'moon' : 'sunny'} size={22} color={colors.primary} />
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuText, { color: colors.text }]}>{t('darkMode', language)}</Text>
-            <Text style={[styles.menuDesc, { color: colors.textMuted }]}>{t('darkModeDesc', language)}</Text>
-          </View>
-          <Switch
-            value={isDarkMode}
-            onValueChange={toggleDarkMode}
-            trackColor={{ false: colors.border, true: colors.primary + '60' }}
-            thumbColor={isDarkMode ? colors.primary : '#f4f3f4'}
-          />
+        <View style={styles.themeRow}>
+          {themeKeys.map(key => {
+            const meta = THEME_META[key];
+            const isActive = colorTheme === key;
+            const label = language === 'ar' ? meta.labelAr : language === 'fr' ? meta.labelFr : meta.label;
+            return (
+              <Pressable
+                key={key}
+                style={[styles.themeOption, isActive && { borderColor: meta.color, borderWidth: 2 }]}
+                onPress={() => setColorTheme(key)}
+              >
+                <View style={[styles.themeCircle, { backgroundColor: meta.color }]}>
+                  {isActive && <Ionicons name="checkmark" size={16} color="#fff" />}
+                </View>
+                <Text style={[styles.themeLabel, { color: colors.text }, isActive && { color: meta.color, fontWeight: '700' }]}>
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
@@ -108,29 +120,22 @@ export default function SettingsScreen() {
         {t('language', language)}
       </Text>
       <View style={[styles.card, { backgroundColor: colors.card }]}>
-        <Pressable
-          style={[styles.langOption, language === 'en' && { backgroundColor: colors.primary + '08' }]}
-          onPress={() => setLanguage('en')}
-        >
-          <Text style={[styles.langText, { color: colors.text }, language === 'en' && { fontWeight: '600', color: colors.primary }]}>
-            {t('english', language)}
-          </Text>
-          {language === 'en' && (
-            <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
-          )}
-        </Pressable>
-        <View style={[styles.separator, { backgroundColor: colors.border }]} />
-        <Pressable
-          style={[styles.langOption, language === 'ar' && { backgroundColor: colors.primary + '08' }]}
-          onPress={() => setLanguage('ar')}
-        >
-          <Text style={[styles.langText, { color: colors.text }, language === 'ar' && { fontWeight: '600', color: colors.primary }]}>
-            {t('arabic', language)}
-          </Text>
-          {language === 'ar' && (
-            <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
-          )}
-        </Pressable>
+        {(['en', 'ar', 'fr'] as const).map((lang, idx) => (
+          <React.Fragment key={lang}>
+            {idx > 0 && <View style={[styles.separator, { backgroundColor: colors.border }]} />}
+            <Pressable
+              style={[styles.langOption, language === lang && { backgroundColor: colors.primary + '08' }]}
+              onPress={() => setLanguage(lang)}
+            >
+              <Text style={[styles.langText, { color: colors.text }, language === lang && { fontWeight: '600', color: colors.primary }]}>
+                {t(lang === 'en' ? 'english' : lang === 'ar' ? 'arabic' : 'french', language)}
+              </Text>
+              {language === lang && (
+                <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+              )}
+            </Pressable>
+          </React.Fragment>
+        ))}
       </View>
 
       {/* Customize */}
@@ -148,6 +153,13 @@ export default function SettingsScreen() {
       </Text>
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <MenuItem icon="sparkles-outline" label={t('aiSettings', language)} onPress={() => navigate('AISettings')} />
+        <View style={[styles.separator, { backgroundColor: colors.border }]} />
+        <View style={[styles.menuItem, { borderBottomColor: colors.border }]}>
+          <Ionicons name="lock-closed-outline" size={22} color={colors.primary} />
+          <Text style={[styles.securityNote, { color: colors.textSecondary }]}>
+            {t('keysEncrypted', language)}
+          </Text>
+        </View>
       </View>
 
       {/* Data - Export & Import */}
@@ -172,28 +184,28 @@ export default function SettingsScreen() {
         <View style={[styles.separator, { backgroundColor: colors.border }]} />
         <View style={styles.statRow}>
           <Text style={[styles.statLabel, { color: colors.text }]}>{t('version', language)}</Text>
-          <Text style={[styles.statValue, { color: colors.textSecondary }]}>2.0.0</Text>
+          <Text style={[styles.statValue, { color: colors.textSecondary }]}>{APP_VERSION}</Text>
         </View>
       </View>
 
       {/* Links */}
       <Text style={[styles.sectionTitle, { color: colors.textSecondary }, isRTL && styles.textRTL]}>
-        {language === 'ar' ? 'روابط' : 'Links'}
+        {t('links', language)}
       </Text>
       <View style={[styles.card, { backgroundColor: colors.card }]}>
-        <MenuItem icon="globe-outline" label={language === 'ar' ? 'الموقع الرسمي' : 'Website'} onPress={() => Linking.openURL('https://note.vibzcode.com')} />
+        <MenuItem icon="globe-outline" label={t('website', language)} onPress={() => Linking.openURL('https://note.vibzcode.com')} />
         <View style={[styles.separator, { backgroundColor: colors.border }]} />
-        <MenuItem icon="shield-checkmark-outline" label={language === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'} onPress={() => Linking.openURL('https://note.vibzcode.com/privacy.html')} />
+        <MenuItem icon="shield-checkmark-outline" label={t('privacyPolicy', language)} onPress={() => Linking.openURL('https://note.vibzcode.com/privacy.html')} />
         <View style={[styles.separator, { backgroundColor: colors.border }]} />
-        <MenuItem icon="document-text-outline" label={language === 'ar' ? 'شروط الاستخدام' : 'Terms of Service'} onPress={() => Linking.openURL('https://note.vibzcode.com/terms.html')} />
+        <MenuItem icon="document-text-outline" label={t('termsOfService', language)} onPress={() => Linking.openURL('https://note.vibzcode.com/terms.html')} />
         <View style={[styles.separator, { backgroundColor: colors.border }]} />
-        <MenuItem icon="logo-github" label="GitHub" onPress={() => Linking.openURL('https://github.com/zizwar/proomy-note')} />
+        <MenuItem icon="mail-outline" label={t('contactEmail', language)} onPress={() => Linking.openURL('mailto:contact-note@vibzcode.com')} />
       </View>
 
       {/* Branding */}
       <Text style={[styles.branding, { color: colors.primary }]}>Vibe Note</Text>
       <Text style={[styles.brandingSub, { color: colors.textMuted }]}>
-        {language === 'ar' ? 'مكتبتك الذكية للبرومبتات' : 'Your smart prompt library'}
+        {language === 'ar' ? 'مكتبتك الذكية للبرومبتات' : language === 'fr' ? 'Votre bibliothèque de prompts intelligente' : 'Your smart prompt library'}
       </Text>
 
       {/* Import Modal */}
@@ -238,6 +250,18 @@ const styles = StyleSheet.create({
   },
   textRTL: { textAlign: 'right' },
   card: { borderRadius: RADIUS.lg, overflow: 'hidden', ...SHADOW.card },
+  themeRow: {
+    flexDirection: 'row', justifyContent: 'space-around', padding: SPACING.lg,
+  },
+  themeOption: {
+    alignItems: 'center', gap: SPACING.xs, padding: SPACING.sm,
+    borderRadius: RADIUS.md, borderWidth: 2, borderColor: 'transparent',
+  },
+  themeCircle: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  themeLabel: { fontSize: FONT_SIZE.xs, fontWeight: '500' },
   langOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: SPACING.lg },
   langText: { fontSize: FONT_SIZE.lg },
   separator: { height: StyleSheet.hairlineWidth, marginLeft: SPACING.lg },
@@ -245,6 +269,7 @@ const styles = StyleSheet.create({
   menuContent: { flex: 1 },
   menuText: { flex: 1, fontSize: FONT_SIZE.lg },
   menuDesc: { fontSize: FONT_SIZE.xs, marginTop: 2 },
+  securityNote: { flex: 1, fontSize: FONT_SIZE.sm, lineHeight: 20 },
   statRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: SPACING.lg },
   statLabel: { fontSize: FONT_SIZE.lg },
   statValue: { fontSize: FONT_SIZE.lg, fontWeight: '600' },

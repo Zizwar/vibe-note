@@ -1,7 +1,7 @@
 import React from 'react';
-import { ScrollView, Pressable, Text, StyleSheet } from 'react-native';
+import { View, ScrollView, Pressable, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { CATEGORIES, RADIUS, SPACING, FONT_SIZE } from '@/constants';
+import { CATEGORIES, RADIUS, SPACING, FONT_SIZE, SHADOW } from '@/constants';
 import { useThemeColors } from '@/hooks/useTheme';
 import { usePromptStore } from '@/stores/promptStore';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -22,62 +22,68 @@ export default function CategoryFilter() {
   };
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.container}
-    >
-      <Pressable
-        style={[
-          styles.chip,
-          { backgroundColor: colors.card },
-          !activeCategory && { backgroundColor: colors.primary },
-        ]}
-        onPress={() => handlePress(null)}
+    <View style={[styles.wrapper, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.container}
       >
-        <Text style={[
-          styles.chipText,
-          { color: colors.text },
-          !activeCategory && styles.chipTextActive,
-        ]}>
-          {t('all', language)}
-        </Text>
-      </Pressable>
-      {allCategories.map(cat => {
-        const isActive = activeCategory === cat.value;
-        return (
-          <Pressable
-            key={cat.value}
-            style={[
-              styles.chip,
-              { backgroundColor: colors.card },
-              isActive && { backgroundColor: cat.color },
-            ]}
-            onPress={() => handlePress(cat.value)}
-          >
-            <Ionicons
-              name={cat.icon as any}
-              size={14}
-              color={isActive ? '#fff' : cat.color}
-            />
-            <Text style={[
-              styles.chipText,
-              { color: colors.text },
-              isActive && styles.chipTextActive,
-            ]}>
-              {language === 'ar' ? cat.labelAr : cat.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
+        <Pressable
+          style={[
+            styles.chip,
+            { backgroundColor: colors.card },
+            !activeCategory && { backgroundColor: colors.primary },
+          ]}
+          onPress={() => handlePress(null)}
+        >
+          <Text style={[
+            styles.chipText,
+            { color: colors.text },
+            !activeCategory && styles.chipTextActive,
+          ]}>
+            {t('all', language)}
+          </Text>
+        </Pressable>
+        {allCategories.map(cat => {
+          const isActive = activeCategory === cat.value;
+          return (
+            <Pressable
+              key={cat.value}
+              style={[
+                styles.chip,
+                { backgroundColor: colors.card },
+                isActive && { backgroundColor: cat.color },
+              ]}
+              onPress={() => handlePress(cat.value)}
+            >
+              <Ionicons
+                name={cat.icon as any}
+                size={15}
+                color={isActive ? '#fff' : cat.color}
+              />
+              <Text style={[
+                styles.chipText,
+                { color: colors.text },
+                isActive && styles.chipTextActive,
+              ]}>
+                {language === 'ar' ? cat.labelAr : cat.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    zIndex: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   container: {
     paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.md,
+    paddingVertical: SPACING.sm,
     gap: SPACING.sm,
     alignItems: 'center',
   },
@@ -86,14 +92,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+    paddingVertical: SPACING.md,
     borderRadius: RADIUS.full,
-    minHeight: 36,
+    minHeight: 42,
     minWidth: 60,
+    ...SHADOW.card,
   },
   chipText: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '500',
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
   },
   chipTextActive: {
     color: '#fff',
