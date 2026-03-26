@@ -11,7 +11,6 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
     "expo": "~55.0.5",
-
     "expo-clipboard": "~55.0.9",
     "expo-document-picker": "^55.0.9",
     "expo-file-system": "~55.0.11",
@@ -28,6 +27,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "picomatch": "^4.0.4",
     "typescript": "~5.9.2"
   },
   "private": true
