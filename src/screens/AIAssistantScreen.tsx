@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, Pressable, ScrollView, StyleSheet, Alert, ActivityIndicator,
-  FlatList, KeyboardAvoidingView, Platform,
+  FlatList, KeyboardAvoidingView, Platform, Keyboard, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RADIUS, SPACING, FONT_SIZE, SHADOW } from '@/constants';
@@ -34,6 +34,27 @@ export default function AIAssistantScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const chatScrollRef = useRef<FlatList>(null);
+  const keyboardHeight = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const show = Keyboard.addListener('keyboardDidShow', e => {
+      Animated.timing(keyboardHeight, {
+        toValue: e.endCoordinates.height,
+        duration: 200,
+        useNativeDriver: false,
+      }).start();
+      setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => {
+      Animated.timing(keyboardHeight, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: false,
+      }).start();
+    });
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   const aiReady = isAIConfigured();
 
@@ -226,11 +247,13 @@ export default function AIAssistantScreen() {
     );
   }
 
+  const ContainerView = Platform.OS === 'ios' ? KeyboardAvoidingView : View;
+  const containerProps = Platform.OS === 'ios' ? { behavior: 'padding' as const, keyboardVerticalOffset: 0 } : {};
+
   return (
-    <KeyboardAvoidingView
+    <ContainerView
       style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
+      {...containerProps}
     >
       {/* Header with back button */}
       <View style={[styles.aiHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }, isRTL && styles.aiHeaderRTL]}>
@@ -320,6 +343,9 @@ export default function AIAssistantScreen() {
               )}
             </Pressable>
           </View>
+          {Platform.OS === 'android' && (
+            <Animated.View style={{ height: keyboardHeight, backgroundColor: colors.card }} />
+          )}
         </View>
       ) : (
         /* Tools View */
@@ -458,7 +484,7 @@ export default function AIAssistantScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       )}
-    </KeyboardAvoidingView>
+    </ContainerView>
   );
 }
 

@@ -273,7 +273,7 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
               <Text style={[styles.secondaryBtnText, { color: colors.textSecondary }]}>{t('copyRaw', language)}</Text>
             </Pressable>
           </View>
-          <Animated.View style={{ height: keyboardHeight }} />
+          <Animated.View style={{ height: keyboardHeight, backgroundColor: colors.card }} />
         </View>
       </View>
     </Modal>
