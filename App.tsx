@@ -24,7 +24,7 @@ import { RADIUS, SPACING, FONT_SIZE, SHADOW } from '@/constants';
 import { t } from '@/i18n/strings';
 import type { VibeNote } from '@/types';
 
-const FULL_SCREEN_ROUTES = new Set(['CreatePrompt', 'EditPrompt', 'PromptDetail', 'ManageCategories', 'ManagePlatforms', 'AISettings']);
+const FULL_SCREEN_ROUTES = new Set(['CreatePrompt', 'EditPrompt', 'PromptDetail', 'ManageCategories', 'ManagePlatforms', 'AISettings', 'AIAssistant']);
 
 export default function App() {
   const [ready, setReady] = useState(false);

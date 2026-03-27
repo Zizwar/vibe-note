@@ -266,10 +266,10 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
 
           <View style={[styles.actions, { borderTopColor: colors.border }]}>
             <Pressable style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={handleCopyWithValues}>
-              <Ionicons name="copy" size={16} color="#fff" />
+              <Ionicons name="copy" size={14} color="#fff" />
               <Text style={styles.primaryBtnText}>{t('copyWithValues', language)}</Text>
             </Pressable>
-            <Pressable style={styles.secondaryBtn} onPress={handleCopyRaw}>
+            <Pressable style={[styles.secondaryBtn, { borderColor: colors.border }]} onPress={handleCopyRaw}>
               <Text style={[styles.secondaryBtnText, { color: colors.textSecondary }]}>{t('copyRaw', language)}</Text>
             </Pressable>
           </View>
@@ -334,12 +334,19 @@ const styles = StyleSheet.create({
     width: 36, height: 36, borderRadius: RADIUS.md,
     alignItems: 'center', justifyContent: 'center',
   },
-  actions: { padding: SPACING.lg, gap: SPACING.sm, borderTopWidth: StyleSheet.hairlineWidth },
-  primaryBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: SPACING.sm, paddingVertical: SPACING.md, borderRadius: RADIUS.md,
+  actions: {
+    flexDirection: 'row', gap: SPACING.sm,
+    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  primaryBtnText: { fontSize: FONT_SIZE.lg, fontWeight: '700', color: '#fff' },
-  secondaryBtn: { alignItems: 'center', paddingVertical: SPACING.sm },
-  secondaryBtnText: { fontSize: FONT_SIZE.md },
+  primaryBtn: {
+    flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: SPACING.xs, paddingVertical: SPACING.sm, borderRadius: RADIUS.md,
+  },
+  primaryBtnText: { fontSize: FONT_SIZE.sm, fontWeight: '700', color: '#fff' },
+  secondaryBtn: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: SPACING.sm, borderRadius: RADIUS.md, borderWidth: 1,
+  },
+  secondaryBtnText: { fontSize: FONT_SIZE.sm, fontWeight: '600' },
 });
