@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, Pressable, Modal, ScrollView, StyleSheet, Alert, FlatList,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RADIUS, SPACING, FONT_SIZE, SHADOW } from '@/constants';
@@ -25,6 +26,7 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [showHistory, setShowHistory] = useState(false);
   const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   // Local content state to reflect real-time updates
   const [localContent, setLocalContent] = useState('');
   const incrementUsage = usePromptStore(s => s.incrementUsage);
@@ -51,6 +53,16 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
       loadHistory(prompt.id);
     }
   }, [prompt?.id, visible]);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', e => {
+      setKeyboardOffset(e.endCoordinates.height);
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardOffset(0);
+    });
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   const handleCopyWithValues = async () => {
     if (!prompt) return;
@@ -116,7 +128,7 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
-        <View style={[styles.sheet, { backgroundColor: colors.card }]}>
+        <View style={[styles.sheet, { backgroundColor: colors.card, marginBottom: keyboardOffset }]}>
           <View style={[styles.header, { borderBottomColor: colors.border }, isRTL && styles.headerRTL]}>
             <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
               {prompt?.title || t('fillVariables', language)}
@@ -178,7 +190,7 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
             </View>
           )}
 
-          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {variables.map(v => (
               <View key={v.name} style={styles.field}>
                 <View style={[styles.labelRow, isRTL && { flexDirection: 'row-reverse' }]}>

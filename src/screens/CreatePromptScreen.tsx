@@ -11,6 +11,7 @@ import { usePromptStore } from '@/stores/promptStore';
 import { useNavigationStore } from '@/stores/navigationStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { isAIConfigured, editPromptWithAI } from '@/engine/aiService';
+import { pickAndReadFile, parseImportJson } from '@/engine/importExport';
 import { estimateTokens, formatTokenCount } from '@/utils/tokenCounter';
 import { t } from '@/i18n/strings';
 import type { PromptCategory, AIPlatform } from '@/types';
@@ -92,6 +93,27 @@ export default function CreatePromptScreen({ promptId }: Props) {
     goBack();
   };
 
+  const handleImportPrompt = async () => {
+    try {
+      const fileResult = await pickAndReadFile();
+      if (!fileResult) return;
+      const parsed = parseImportJson(fileResult.content);
+      if (!parsed.prompts.length) {
+        Alert.alert('Error', language === 'ar' ? 'لم يتم العثور على برومبت في الملف' : 'No prompt found in file');
+        return;
+      }
+      const p = parsed.prompts[0];
+      if (p.title) setTitle(p.title);
+      if (p.content) setContent(p.content);
+      if (p.description) setDescription(p.description as string);
+      if (p.category) setCategory(p.category as PromptCategory);
+      if (p.platform) setPlatform(p.platform as AIPlatform);
+      if (p.tags?.length) setTags(p.tags);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Failed to import');
+    }
+  };
+
   const handleAIEdit = async () => {
     if (!aiEditInstructions.trim() || !content.trim()) return;
     setAiLoading(true);
@@ -130,7 +152,7 @@ export default function CreatePromptScreen({ promptId }: Props) {
       </View>
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-        {/* Token counter */}
+        {/* Token counter + actions */}
         <View style={[styles.tokenRow, isRTL && { flexDirection: 'row-reverse' }]}>
           <View style={[styles.tokenBadge, { backgroundColor: colors.primary + '15' }]}>
             <Ionicons name="analytics-outline" size={14} color={colors.primary} />
@@ -138,15 +160,26 @@ export default function CreatePromptScreen({ promptId }: Props) {
               {formatTokenCount(tokenCount)} {t('tokens', language)}
             </Text>
           </View>
-          {isAIConfigured() && isEditing && (
+          <View style={[styles.toolbarBtns, isRTL && { flexDirection: 'row-reverse' }]}>
             <Pressable
-              style={[styles.aiEditBtn, { borderColor: colors.primary }]}
-              onPress={() => setShowAIEdit(true)}
+              style={[styles.aiEditBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
+              onPress={handleImportPrompt}
             >
-              <Ionicons name="sparkles" size={14} color={colors.primary} />
-              <Text style={[styles.aiEditText, { color: colors.primary }]}>{t('editWithAI', language)}</Text>
+              <Ionicons name="cloud-download-outline" size={14} color={colors.text} />
+              <Text style={[styles.aiEditText, { color: colors.text }]}>
+                {language === 'ar' ? 'استيراد' : language === 'fr' ? 'Importer' : 'Import'}
+              </Text>
             </Pressable>
-          )}
+            {isAIConfigured() && content.trim().length > 0 && (
+              <Pressable
+                style={[styles.aiEditBtn, { borderColor: colors.primary, backgroundColor: colors.primary + '10' }]}
+                onPress={() => setShowAIEdit(true)}
+              >
+                <Ionicons name="sparkles" size={14} color={colors.primary} />
+                <Text style={[styles.aiEditText, { color: colors.primary }]}>{t('editWithAI', language)}</Text>
+              </Pressable>
+            )}
+          </View>
         </View>
 
         <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('title', language)}</Text>
@@ -285,6 +318,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs, borderRadius: RADIUS.full,
   },
   tokenText: { fontSize: FONT_SIZE.xs, fontWeight: '600' },
+  toolbarBtns: { flexDirection: 'row', gap: SPACING.sm },
   aiEditBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs,

@@ -47,8 +47,10 @@ export default function App() {
       } else {
         // Handle content:// and other URI schemes (Android)
         const destPath = FileSystem.cacheDirectory + 'import_temp.vibe';
-        await FileSystem.copyAsync({ from: url, to: destPath });
-        content = await FileSystem.readAsStringAsync(destPath);
+        const srcFile = new File(url);
+        const destFile = new File(destPath);
+        await srcFile.copy(destFile);
+        content = await destFile.text();
       }
       const parsed = parseImportJson(content);
       const db = getDatabase();
@@ -128,11 +130,11 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]} edges={['top', 'bottom']}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.navBar }]} edges={['top', 'bottom']}>
           <StatusBar style="light" />
 
           {!isFullScreen && (
-            <View style={[styles.header, { backgroundColor: colors.primary }, isRTL && styles.headerRTL]}>
+            <View style={[styles.header, { backgroundColor: colors.navBar }, isRTL && styles.headerRTL]}>
               <View style={[styles.headerCenter, isRTL && { flexDirection: 'row-reverse' }]}>
                 <Ionicons name="sparkles" size={24} color="#fff" />
                 <Text style={styles.headerTitle}>{t('appName', language)}</Text>

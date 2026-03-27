@@ -230,7 +230,7 @@ export default function AIAssistantScreen() {
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      keyboardVerticalOffset={0}
     >
       {/* Header with back button */}
       <View style={[styles.aiHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }, isRTL && styles.aiHeaderRTL]}>

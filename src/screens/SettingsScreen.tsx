@@ -251,14 +251,15 @@ const styles = StyleSheet.create({
   textRTL: { textAlign: 'right' },
   card: { borderRadius: RADIUS.lg, overflow: 'hidden', ...SHADOW.card },
   themeRow: {
-    flexDirection: 'row', justifyContent: 'space-around', padding: SPACING.lg,
+    flexDirection: 'row', justifyContent: 'space-between', padding: SPACING.md, paddingHorizontal: SPACING.lg,
   },
   themeOption: {
-    alignItems: 'center', gap: SPACING.xs, padding: SPACING.sm,
+    alignItems: 'center', gap: SPACING.xs, padding: SPACING.xs,
     borderRadius: RADIUS.md, borderWidth: 2, borderColor: 'transparent',
+    flex: 1,
   },
   themeCircle: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 28, height: 28, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
   },
   themeLabel: { fontSize: FONT_SIZE.xs, fontWeight: '500' },

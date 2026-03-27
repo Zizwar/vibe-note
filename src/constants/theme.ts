@@ -4,6 +4,7 @@ export interface ThemeColors {
   primary: string;
   primaryLight: string;
   primaryDark: string;
+  navBar: string;
   background: string;
   card: string;
   text: string;
@@ -23,6 +24,7 @@ export const THEME_PRESETS: Record<ColorTheme, ThemeColors> = {
     primary: '#336699',
     primaryLight: '#4a80b4',
     primaryDark: '#264d73',
+    navBar: '#336699',
     background: '#f5f5f5',
     card: '#ffffff',
     text: '#1a1a2e',
@@ -40,6 +42,7 @@ export const THEME_PRESETS: Record<ColorTheme, ThemeColors> = {
     primary: '#1976D2',
     primaryLight: '#42A5F5',
     primaryDark: '#0D47A1',
+    navBar: '#1976D2',
     background: '#EFF6FF',
     card: '#ffffff',
     text: '#1a1a2e',
@@ -57,6 +60,7 @@ export const THEME_PRESETS: Record<ColorTheme, ThemeColors> = {
     primary: '#2E7D32',
     primaryLight: '#4CAF50',
     primaryDark: '#1B5E20',
+    navBar: '#2E7D32',
     background: '#F1F8E9',
     card: '#ffffff',
     text: '#1a1a2e',
@@ -74,6 +78,7 @@ export const THEME_PRESETS: Record<ColorTheme, ThemeColors> = {
     primary: '#E65100',
     primaryLight: '#FF8A65',
     primaryDark: '#BF360C',
+    navBar: '#E65100',
     background: '#FFF8F0',
     card: '#ffffff',
     text: '#1a1a2e',
@@ -91,6 +96,7 @@ export const THEME_PRESETS: Record<ColorTheme, ThemeColors> = {
     primary: '#4a88c2',
     primaryLight: '#5a9ad5',
     primaryDark: '#336699',
+    navBar: '#1a1a1a',
     background: '#121212',
     card: '#1e1e1e',
     text: '#e8e8e8',
@@ -115,7 +121,7 @@ export const THEME_META: Record<ColorTheme, { label: string; labelAr: string; la
   ocean: { label: 'Ocean', labelAr: 'محيط', labelFr: 'Océan', color: '#1976D2', bg: '#EFF6FF' },
   forest: { label: 'Forest', labelAr: 'غابة', labelFr: 'Forêt', color: '#2E7D32', bg: '#F1F8E9' },
   sunset: { label: 'Sunset', labelAr: 'غروب', labelFr: 'Coucher', color: '#E65100', bg: '#FFF8F0' },
-  dark: { label: 'Dark', labelAr: 'داكن', labelFr: 'Sombre', color: '#4a88c2', bg: '#121212' },
+  dark: { label: 'Dark', labelAr: 'داكن', labelFr: 'Sombre', color: '#1a1a1a', bg: '#121212' },
 };
 
 export const SPACING = {
