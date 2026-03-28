@@ -1,25 +1,41 @@
-# Proomy Note
+# Vibe Note
 
-Proomy Note is an open-source note-taking application built with **Expo SDK 55** and **React Native**, designed to help you organize and manage your thoughts, ideas, and information efficiently.
+A prompt manager for people who use AI tools daily. Save, organize, and reuse prompts across ChatGPT, Claude, Gemini, Midjourney, and more — all stored locally on your device.
+
+## What it does
+
+Managing prompts is tedious. They end up scattered across browser tabs, notes apps, and chat histories. Vibe Note gives them a proper home:
+
+- **Save prompts** with title, category, AI platform tag, and custom tags
+- **Fill variables** — write `{{topic}}` or `{{tone:formal|casual|professional}}` and the app turns your prompt into an interactive form
+- **Search instantly** across titles, content, and tags with full-text search
+- **Use AI** to import raw text and auto-organize it, generate new prompts from a description, or improve existing ones
+- **Track usage** — see how often each prompt is used and recall what values you filled last time
+- **Export and import** your full library as `.vibe` files for backup or sharing
 
 ## Features
 
-- Create, edit, and delete notes
-- Categorize notes (image, code, video)
-- Search functionality
-- Multilingual support (English and Arabic)
-- Customizable color schemes
-- Privacy-focused
-- AI assistant integration
+| Feature | Details |
+|---|---|
+| Variable templates | `{{var}}`, `{{var\|default}}`, `{{var:opt1\|opt2\|opt3}}` |
+| Categories | Image, Video, Code, Writing, Marketing, Business, Music, Education + custom |
+| Platforms | ChatGPT, Claude, Gemini, Midjourney, DALL-E, Sora, Cursor, v0, Lovable + custom |
+| AI assistant | Chat, smart import, prompt generation, quality analysis |
+| AI providers | Google Gemini, OpenAI, OpenRouter (bring your own key) |
+| Token counter | Estimates token count per prompt |
+| Languages | English, Arabic (RTL), French |
+| Themes | Light/dark + 10 color themes |
+| Storage | Local SQLite — no cloud, no accounts |
 
 ## Stack
 
 | | Version |
 |---|---|
-| Expo SDK | 55.0.0-preview.7 |
+| Expo SDK | 55 |
 | React Native | 0.83.2 |
-| React | 19.2.0 |
 | TypeScript | 5.9.2 |
+| State | Zustand 5.0 |
+| Database | expo-sqlite (SQLite + FTS5) |
 
 ## Getting Started
 
@@ -30,21 +46,12 @@ npm install
 npm start
 ```
 
-Then scan the QR code with **Expo Go** on your device, or press `a` for Android / `i` for iOS simulator.
+Scan the QR code with Expo Go, or press `a` for Android emulator.
 
-## Open Source
+## Privacy
 
-This project is open-source and available under the MIT License.
-
-Feel free to fork, modify, and contribute to the project!
-
-## Contributing
-
-1. Fork the repository
-2. Create a new branch for your feature
-3. Make your changes
-4. Submit a pull request
+All data is stored on your device. API keys are stored with `expo-secure-store`. No analytics, no tracking, no cloud sync.
 
 ## License
 
-MIT — see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
