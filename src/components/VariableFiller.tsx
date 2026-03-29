@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, Pressable, Modal, ScrollView, StyleSheet, Alert, FlatList,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { RADIUS, SPACING, FONT_SIZE, SHADOW } from '@/constants';
 import { useThemeColors } from '@/hooks/useTheme';
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function VariableFiller({ prompt, visible, onClose }: Props) {
+  const insets = useSafeAreaInsets();
   const [values, setValues] = useState<Record<string, string>>({});
   const [showHistory, setShowHistory] = useState(false);
   const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
@@ -244,7 +246,7 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
             ))}
           </ScrollView>
 
-          <View style={[styles.actions, { borderTopColor: colors.border }]}>
+          <View style={[styles.actions, { borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, SPACING.md) }]}>
             <Pressable style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={handleCopyWithValues}>
               <Ionicons name="copy" size={14} color="#fff" />
               <Text style={styles.primaryBtnText}>{t('copyWithValues', language)}</Text>

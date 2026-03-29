@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, Pressable, ScrollView, StyleSheet, Alert, Linking,
+  View, Text, TextInput, Pressable, ScrollView, StyleSheet, Alert, Linking, Modal, FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RADIUS, SPACING, FONT_SIZE, SHADOW } from '@/constants';
@@ -9,6 +9,36 @@ import { useSettingsStore, AIProviderConfig } from '@/stores/settingsStore';
 import { useNavigationStore } from '@/stores/navigationStore';
 import { testAIConnection } from '@/engine/aiService';
 import { t } from '@/i18n/strings';
+
+type ModelItem = { id: string; name: string; desc: string };
+
+const PROVIDER_MODELS: Record<string, ModelItem[]> = {
+  gemini: [
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', desc: 'Fast · Free quota' },
+    { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite', desc: 'Lightest & fastest' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'Most capable' },
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', desc: 'Balanced performance' },
+    { id: 'gemini-1.0-pro', name: 'Gemini 1.0 Pro', desc: 'Stable classic' },
+  ],
+  openai: [
+    { id: 'gpt-4o', name: 'GPT-4o', desc: 'Most capable · Multimodal' },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', desc: 'Fast · Cost-effective' },
+    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', desc: 'High capability' },
+    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', desc: 'Fast · Economical' },
+  ],
+  openrouter: [
+    { id: 'anthropic/claude-opus-4-5', name: 'Claude Opus 4.5', desc: 'Anthropic · Most capable' },
+    { id: 'anthropic/claude-sonnet-4-5', name: 'Claude Sonnet 4.5', desc: 'Anthropic · Best balance' },
+    { id: 'anthropic/claude-haiku-4-5', name: 'Claude Haiku 4.5', desc: 'Anthropic · Fast & cheap' },
+    { id: 'openai/gpt-4o', name: 'GPT-4o', desc: 'OpenAI · Multimodal' },
+    { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', desc: 'OpenAI · Economical' },
+    { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', desc: 'Google · Fast · Free' },
+    { id: 'meta-llama/llama-3.3-70b-instruct', name: 'Llama 3.3 70B', desc: 'Meta · Open source' },
+    { id: 'mistralai/mistral-large-2411', name: 'Mistral Large', desc: 'Mistral · Capable' },
+    { id: 'deepseek/deepseek-chat-v3-0324', name: 'DeepSeek V3', desc: 'DeepSeek · Strong reasoning' },
+    { id: 'qwen/qwen-2.5-72b-instruct', name: 'Qwen 2.5 72B', desc: 'Alibaba · Multilingual' },
+  ],
+};
 
 const PROVIDER_INFO: Record<string, { desc: string; keyUrl: string; icon: string; color: string }> = {
   gemini: {
@@ -43,6 +73,7 @@ export default function AISettingsScreen() {
 
   const [testing, setTesting] = useState(false);
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
+  const [modelPickerProvider, setModelPickerProvider] = useState<string | null>(null);
 
   const handleTest = async () => {
     setTesting(true);
@@ -117,6 +148,18 @@ export default function AISettingsScreen() {
               placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
             />
+            {PROVIDER_MODELS[provider.id] && (
+              <Pressable
+                style={[styles.modelPickerBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
+                onPress={() => setModelPickerProvider(provider.id)}
+              >
+                <Ionicons name="list" size={15} color={colors.primary} />
+                <Text style={[styles.modelPickerBtnText, { color: colors.primary }]}>
+                  {language === 'ar' ? 'اختر من القائمة' : language === 'fr' ? 'Choisir dans la liste' : 'Choose from list'}
+                </Text>
+                <Ionicons name="chevron-down" size={15} color={colors.primary} />
+              </Pressable>
+            )}
 
             <View style={styles.providerActions}>
               {info && (
@@ -188,6 +231,57 @@ export default function AISettingsScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Model Picker Modal */}
+      <Modal
+        visible={!!modelPickerProvider}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModelPickerProvider(null)}
+      >
+        <Pressable style={styles.pickerOverlay} onPress={() => setModelPickerProvider(null)}>
+          <View style={[styles.pickerSheet, { backgroundColor: colors.card }]}>
+            <View style={[styles.pickerHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.pickerTitle, { color: colors.text }]}>
+                {language === 'ar' ? 'اختر موديل' : language === 'fr' ? 'Choisir un modèle' : 'Select Model'}
+              </Text>
+              <Pressable onPress={() => setModelPickerProvider(null)} hitSlop={8}>
+                <Ionicons name="close" size={22} color={colors.text} />
+              </Pressable>
+            </View>
+            <FlatList
+              data={PROVIDER_MODELS[modelPickerProvider || ''] || []}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => {
+                const isSelected = aiProviders.find(p => p.id === modelPickerProvider)?.model === item.id;
+                return (
+                  <Pressable
+                    style={[
+                      styles.modelItem,
+                      { borderBottomColor: colors.border },
+                      isSelected && { backgroundColor: colors.primary + '12' },
+                    ]}
+                    onPress={() => {
+                      if (modelPickerProvider) {
+                        updateAIProvider(modelPickerProvider, { model: item.id });
+                      }
+                      setModelPickerProvider(null);
+                    }}
+                  >
+                    <View style={styles.modelItemInfo}>
+                      <Text style={[styles.modelItemName, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={[styles.modelItemDesc, { color: colors.textMuted }]}>{item.desc}</Text>
+                    </View>
+                    {isSelected && (
+                      <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                    )}
+                  </Pressable>
+                );
+              }}
+            />
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -295,4 +389,30 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
   },
   testBtnText: { fontSize: FONT_SIZE.sm, fontWeight: '600' },
+  modelPickerBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.xs,
+    paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.md, borderWidth: 1,
+  },
+  modelPickerBtnText: { flex: 1, fontSize: FONT_SIZE.sm, fontWeight: '600' },
+  pickerOverlay: {
+    flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  pickerSheet: {
+    borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl,
+    maxHeight: '70%', ...SHADOW.elevated,
+  },
+  pickerHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: SPACING.lg, borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  pickerTitle: { fontSize: FONT_SIZE.lg, fontWeight: '700' },
+  modelItem: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: SPACING.md, paddingHorizontal: SPACING.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  modelItemInfo: { flex: 1 },
+  modelItemName: { fontSize: FONT_SIZE.md, fontWeight: '600' },
+  modelItemDesc: { fontSize: FONT_SIZE.xs, marginTop: 2 },
 });
