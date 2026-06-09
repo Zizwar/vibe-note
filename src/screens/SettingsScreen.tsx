@@ -14,7 +14,9 @@ import { t } from '@/i18n/strings';
 import type { VibeNote } from '@/types';
 import { generateId } from '@/utils/id';
 
-const APP_VERSION = require('../../package.json').version;
+// Pull the displayed version straight from the Expo app config (app.json),
+// so the Settings screen always matches the published app version.
+const APP_VERSION = require('../../app.json').expo.version;
 
 export default function SettingsScreen() {
   const language = useSettingsStore(s => s.language);

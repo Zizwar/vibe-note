@@ -12,31 +12,39 @@ import { t } from '@/i18n/strings';
 
 type ModelItem = { id: string; name: string; desc: string };
 
+// Model lists verified June 2026 against the live provider APIs
+// (Gemini ListModels, OpenAI models docs, OpenRouter /api/v1/models).
 const PROVIDER_MODELS: Record<string, ModelItem[]> = {
   gemini: [
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', desc: 'Fast · Free quota' },
-    { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite', desc: 'Lightest & fastest' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'Most capable' },
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', desc: 'Balanced performance' },
-    { id: 'gemini-1.0-pro', name: 'Gemini 1.0 Pro', desc: 'Stable classic' },
+    { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', desc: 'Newest · Fast (recommended)' },
+    { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash', desc: 'Gen-3 · Fast (preview)' },
+    { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', desc: 'Most capable (preview)' },
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Stable · Fast' },
+    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Stable · Most capable' },
+    { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', desc: 'Lightest & fastest' },
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', desc: 'Reliable · Free quota' },
+    { id: 'gemini-flash-latest', name: 'Gemini Flash (latest)', desc: 'Always-latest flash alias' },
   ],
   openai: [
-    { id: 'gpt-4o', name: 'GPT-4o', desc: 'Most capable · Multimodal' },
-    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', desc: 'Fast · Cost-effective' },
-    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', desc: 'High capability' },
-    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', desc: 'Fast · Economical' },
+    { id: 'gpt-5.5', name: 'GPT-5.5', desc: 'Flagship · Most capable' },
+    { id: 'gpt-5.5-pro', name: 'GPT-5.5 Pro', desc: 'Highest precision' },
+    { id: 'gpt-5.4', name: 'GPT-5.4', desc: 'Affordable flagship' },
+    { id: 'gpt-5.4-mini', name: 'GPT-5.4 Mini', desc: 'Strong mini · Fast' },
+    { id: 'gpt-5.4-nano', name: 'GPT-5.4 Nano', desc: 'Cheapest · High-volume' },
+    { id: 'gpt-5.3-codex', name: 'GPT-5.3 Codex', desc: 'Agentic coding' },
+    { id: 'chat-latest', name: 'ChatGPT (latest)', desc: 'Latest instant model' },
   ],
   openrouter: [
-    { id: 'anthropic/claude-opus-4-5', name: 'Claude Opus 4.5', desc: 'Anthropic · Most capable' },
-    { id: 'anthropic/claude-sonnet-4-5', name: 'Claude Sonnet 4.5', desc: 'Anthropic · Best balance' },
-    { id: 'anthropic/claude-haiku-4-5', name: 'Claude Haiku 4.5', desc: 'Anthropic · Fast & cheap' },
-    { id: 'openai/gpt-4o', name: 'GPT-4o', desc: 'OpenAI · Multimodal' },
-    { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', desc: 'OpenAI · Economical' },
-    { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', desc: 'Google · Fast · Free' },
-    { id: 'meta-llama/llama-3.3-70b-instruct', name: 'Llama 3.3 70B', desc: 'Meta · Open source' },
-    { id: 'mistralai/mistral-large-2411', name: 'Mistral Large', desc: 'Mistral · Capable' },
-    { id: 'deepseek/deepseek-chat-v3-0324', name: 'DeepSeek V3', desc: 'DeepSeek · Strong reasoning' },
-    { id: 'qwen/qwen-2.5-72b-instruct', name: 'Qwen 2.5 72B', desc: 'Alibaba · Multilingual' },
+    { id: 'anthropic/claude-opus-4.8', name: 'Claude Opus 4.8', desc: 'Anthropic · Most capable' },
+    { id: 'anthropic/claude-opus-4.8-fast', name: 'Claude Opus 4.8 Fast', desc: 'Anthropic · Faster Opus' },
+    { id: 'anthropic/claude-sonnet-4.6', name: 'Claude Sonnet 4.6', desc: 'Anthropic · Best balance' },
+    { id: 'anthropic/claude-haiku-4.5', name: 'Claude Haiku 4.5', desc: 'Anthropic · Fast & cheap' },
+    { id: 'openai/gpt-5.5', name: 'GPT-5.5', desc: 'OpenAI · Flagship' },
+    { id: 'openai/gpt-5.4-mini', name: 'GPT-5.4 Mini', desc: 'OpenAI · Economical' },
+    { id: 'google/gemini-3.5-flash', name: 'Gemini 3.5 Flash', desc: 'Google · Fast' },
+    { id: 'deepseek/deepseek-v4-pro', name: 'DeepSeek V4 Pro', desc: 'DeepSeek · Strong reasoning' },
+    { id: 'qwen/qwen3.7-max', name: 'Qwen3.7 Max', desc: 'Alibaba · Capable' },
+    { id: 'meta-llama/llama-4-maverick', name: 'Llama 4 Maverick', desc: 'Meta · Open source' },
   ],
 };
 

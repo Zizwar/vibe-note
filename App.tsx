@@ -5,7 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { File } from 'expo-file-system';
-import * as FileSystem from 'expo-file-system';
+import * as LegacyFileSystem from 'expo-file-system/legacy';
 import { getDatabase } from '@/database/connection';
 import { initializeDatabase } from '@/database/schema';
 import { seedDatabase } from '@/database/seed';
@@ -45,12 +45,10 @@ export default function App() {
         const file = new File(url);
         content = await file.text();
       } else {
-        // Handle content:// and other URI schemes (Android)
-        const destPath = FileSystem.cacheDirectory + 'import_temp.vibe';
-        const srcFile = new File(url);
-        const destFile = new File(destPath);
-        await srcFile.copy(destFile);
-        content = await destFile.text();
+        // content:// (and other) URIs on Android: the new File API only accepts
+        // file:// schemes, so read these through the legacy API, which resolves
+        // content URIs via the Android ContentResolver.
+        content = await LegacyFileSystem.readAsStringAsync(url);
       }
       const parsed = parseImportJson(content);
       const db = getDatabase();

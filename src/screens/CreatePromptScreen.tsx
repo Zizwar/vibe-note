@@ -205,11 +205,13 @@ export default function CreatePromptScreen({ promptId }: Props) {
 
         <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('description', language)}</Text>
         <TextInput
-          style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.card }, isRTL && styles.inputRTL]}
+          style={[styles.input, styles.descriptionInput, { borderColor: colors.border, color: colors.text, backgroundColor: colors.card }, isRTL && styles.inputRTL]}
           value={description}
           onChangeText={setDescription}
           placeholder={t('description', language)}
           placeholderTextColor={colors.textMuted}
+          multiline
+          textAlignVertical="top"
         />
 
         <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('category', language)}</Text>
@@ -265,7 +267,7 @@ export default function CreatePromptScreen({ promptId }: Props) {
             <Text style={[styles.modalTitle, { color: colors.text }]}>{t('aiEdit', language)}</Text>
             <Text style={[styles.modalDesc, { color: colors.textMuted }]}>{t('aiEditDesc', language)}</Text>
             <TextInput
-              style={[styles.aiInput, { borderColor: colors.border, color: colors.text, backgroundColor: colors.background }]}
+              style={[styles.aiInput, { borderColor: colors.border, color: colors.text, backgroundColor: colors.background }, isRTL && styles.inputRTL]}
               value={aiEditInstructions}
               onChangeText={setAiEditInstructions}
               placeholder={t('editInstructions', language)}
@@ -327,9 +329,10 @@ const styles = StyleSheet.create({
   aiEditText: { fontSize: FONT_SIZE.xs, fontWeight: '600' },
   label: { fontSize: FONT_SIZE.md, fontWeight: '600', marginBottom: SPACING.xs, marginTop: SPACING.lg },
   textRTL: { textAlign: 'right' },
-  input: { borderWidth: 1, borderRadius: RADIUS.md, padding: SPACING.md, fontSize: FONT_SIZE.md },
-  inputRTL: { textAlign: 'right' },
-  contentInput: { minHeight: 120 },
+  input: { borderWidth: 1, borderRadius: RADIUS.md, padding: SPACING.md, fontSize: FONT_SIZE.md, lineHeight: 22 },
+  inputRTL: { textAlign: 'right', writingDirection: 'rtl' },
+  contentInput: { minHeight: 120, maxHeight: 320 },
+  descriptionInput: { minHeight: 72, maxHeight: 160 },
   hint: { fontSize: FONT_SIZE.xs, marginTop: SPACING.xs, fontStyle: 'italic' },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
   chip: {

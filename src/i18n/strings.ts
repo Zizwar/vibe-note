@@ -160,6 +160,8 @@ const strings = {
     sendMessage: 'Send',
     createTemplate: 'Create Template',
     createTemplateFromChat: 'Would you like to create a prompt template from this conversation?',
+    chatWithAI: 'Chat with AI',
+    addPromptToChat: 'Add a prompt to the chat',
     importFile: 'Import File',
     supportedFiles: 'Supports .json, .vibe, .md, .txt files',
 
@@ -366,6 +368,8 @@ const strings = {
     sendMessage: 'إرسال',
     createTemplate: 'إنشاء قالب',
     createTemplateFromChat: 'هل تريد إنشاء قالب برومبت من هذه المحادثة؟',
+    chatWithAI: 'دردشة مع الذكاء',
+    addPromptToChat: 'أضف برومبت إلى المحادثة',
     importFile: 'استيراد ملف',
     supportedFiles: 'يدعم ملفات .json و .vibe و .md و .txt',
 
@@ -572,6 +576,8 @@ const strings = {
     sendMessage: 'Envoyer',
     createTemplate: 'Créer un modèle',
     createTemplateFromChat: 'Souhaitez-vous créer un modèle de prompt à partir de cette conversation ?',
+    chatWithAI: 'Discuter avec l\'IA',
+    addPromptToChat: 'Ajouter un prompt à la discussion',
     importFile: 'Importer un fichier',
     supportedFiles: 'Supporte les fichiers .json, .vibe, .md, .txt',
 

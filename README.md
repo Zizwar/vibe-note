@@ -20,20 +20,22 @@ Managing prompts is tedious. They end up scattered across browser tabs, notes ap
 | Variable templates | `{{var}}`, `{{var\|default}}`, `{{var:opt1\|opt2\|opt3}}` |
 | Categories | Image, Video, Code, Writing, Marketing, Business, Music, Education + custom |
 | Platforms | ChatGPT, Claude, Gemini, Midjourney, DALL-E, Sora, Cursor, v0, Lovable + custom |
-| AI assistant | Chat, smart import, prompt generation, quality analysis |
+| AI assistant | Redesigned chat, smart import, prompt generation, quality analysis |
+| Chat with a prompt | Run any prompt in-app instead of copying it out; chain prompts together in one conversation |
+| Prompt views | List, **Notes**, Grid, and By-Category layouts |
 | AI providers | Google Gemini, OpenAI, OpenRouter (bring your own key) |
 | Token counter | Estimates token count per prompt |
 | Languages | English, Arabic (RTL), French |
-| Themes | Light/dark + 10 color themes |
+| Themes | 5 color themes (Light, Ocean, Forest, Sunset, Dark) |
 | Storage | Local SQLite — no cloud, no accounts |
 
 ## Stack
 
 | | Version |
 |---|---|
-| Expo SDK | 55 |
-| React Native | 0.83.2 |
-| TypeScript | 5.9.2 |
+| Expo SDK | 56 |
+| React Native | 0.85.3 |
+| TypeScript | 6.0 |
 | State | Zustand 5.0 |
 | Database | expo-sqlite (SQLite + FTS5) |
 

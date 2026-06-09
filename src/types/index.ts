@@ -68,4 +68,6 @@ export type ScreenName =
 
 export interface NavigationParams {
   promptId?: string;
+  /** Pre-fills the AI Assistant chat input when navigating to the AIAssistant screen */
+  seedPrompt?: string;
 }

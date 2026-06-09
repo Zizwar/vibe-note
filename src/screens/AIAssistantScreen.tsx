@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, Pressable, ScrollView, StyleSheet, Alert, ActivityIndicator,
-  FlatList, KeyboardAvoidingView, Platform, Keyboard, Animated,
+  FlatList, KeyboardAvoidingView, Platform, Keyboard, Animated, Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RADIUS, SPACING, FONT_SIZE, SHADOW } from '@/constants';
@@ -22,8 +22,14 @@ export default function AIAssistantScreen() {
   const isRTL = useSettingsStore(s => s.isRTL);
   const navigate = useNavigationStore(s => s.navigate);
   const goBack = useNavigationStore(s => s.goBack);
+  const seedPrompt = useNavigationStore(s => s.params.seedPrompt);
+  const aiProviders = useSettingsStore(s => s.aiProviders);
+  const activeAIProvider = useSettingsStore(s => s.activeAIProvider);
   const addPrompt = usePromptStore(s => s.addPrompt);
+  const prompts = usePromptStore(s => s.prompts);
   const colors = useThemeColors();
+
+  const activeProvider = aiProviders.find(p => p.id === activeAIProvider);
 
   const [activeTab, setActiveTab] = useState<TabType>('chat');
   const [input, setInput] = useState('');
@@ -35,6 +41,14 @@ export default function AIAssistantScreen() {
   const [chatInput, setChatInput] = useState('');
   const chatScrollRef = useRef<FlatList>(null);
   const keyboardHeight = useRef(new Animated.Value(0)).current;
+  const seedRunRef = useRef<string | null>(null);
+  const [showPromptPicker, setShowPromptPicker] = useState(false);
+
+  const chatSuggestions = language === 'ar'
+    ? ['اكتب لي برومبت احترافي عن…', 'حسّن هذا البرومبت', 'اشرح كيف أكتب برومبت أفضل', 'حوّل فكرتي إلى قالب متغيّرات']
+    : language === 'fr'
+      ? ['Écris-moi un prompt pro sur…', 'Améliore ce prompt', 'Explique comment mieux écrire un prompt', 'Transforme mon idée en modèle']
+      : ['Write me a pro prompt about…', 'Improve this prompt', 'Explain how to write a better prompt', 'Turn my idea into a template'];
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -157,9 +171,10 @@ export default function AIAssistantScreen() {
     return null;
   };
 
-  const handleSendChat = async () => {
-    if (!chatInput.trim()) return;
-    const userMsg: ChatMessage = { role: 'user', content: chatInput.trim() };
+  const handleSendChat = async (override?: string) => {
+    const text = (override ?? chatInput).trim();
+    if (!text || loading) return;
+    const userMsg: ChatMessage = { role: 'user', content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setChatInput('');
@@ -206,6 +221,15 @@ export default function AIAssistantScreen() {
     }
     setLoading(false);
   };
+
+  // Opened from a prompt ("Chat with AI"): switch to chat and run the prompt in-app
+  useEffect(() => {
+    if (seedPrompt && seedRunRef.current !== seedPrompt) {
+      seedRunRef.current = seedPrompt;
+      setActiveTab('chat');
+      handleSendChat(seedPrompt);
+    }
+  }, [seedPrompt]);
 
   const getActionLabel = () => {
     switch (activeTab) {
@@ -288,6 +312,26 @@ export default function AIAssistantScreen() {
       {/* Chat View */}
       {activeTab === 'chat' ? (
         <View style={styles.chatContainer}>
+          {/* Assistant identity bar */}
+          <View style={[styles.assistantBar, { borderBottomColor: colors.border }, isRTL && styles.aiHeaderRTL]}>
+            <View style={[styles.assistantBadge, { backgroundColor: colors.primary + '18' }]}>
+              <Ionicons name="sparkles" size={14} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.assistantName, { color: colors.text }, isRTL && styles.inputRTL]}>Vibe AI</Text>
+              {activeProvider && (
+                <Text style={[styles.assistantMeta, { color: colors.textMuted }, isRTL && styles.inputRTL]} numberOfLines={1}>
+                  {activeProvider.name}{activeProvider.model ? ` · ${activeProvider.model}` : ''}
+                </Text>
+              )}
+            </View>
+            {messages.length > 0 && (
+              <Pressable onPress={() => setMessages([])} hitSlop={8}>
+                <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
+              </Pressable>
+            )}
+          </View>
+
           <FlatList
             ref={chatScrollRef}
             data={messages}
@@ -297,11 +341,37 @@ export default function AIAssistantScreen() {
             onContentSizeChange={() => chatScrollRef.current?.scrollToEnd()}
             ListEmptyComponent={
               <View style={styles.chatEmpty}>
-                <Ionicons name="chatbubbles-outline" size={48} color={colors.textMuted} />
+                <View style={[styles.chatEmptyIcon, { backgroundColor: colors.primary + '15' }]}>
+                  <Ionicons name="sparkles" size={32} color={colors.primary} />
+                </View>
+                <Text style={[styles.chatEmptyTitle, { color: colors.text }]}>
+                  {language === 'ar' ? 'ابدأ محادثة مع Vibe' : language === 'fr' ? 'Discutez avec Vibe' : 'Chat with Vibe'}
+                </Text>
                 <Text style={[styles.chatEmptyText, { color: colors.textMuted }]}>
                   {t('chatPlaceholder', language)}
                 </Text>
+                <View style={styles.suggestionWrap}>
+                  {chatSuggestions.map((s, i) => (
+                    <Pressable
+                      key={i}
+                      style={[styles.suggestionChip, { borderColor: colors.border, backgroundColor: colors.card }]}
+                      onPress={() => setChatInput(s)}
+                    >
+                      <Text style={[styles.suggestionChipText, { color: colors.textSecondary }]}>{s}</Text>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
+            }
+            ListFooterComponent={
+              loading && messages.length > 0 && messages[messages.length - 1].role === 'user' ? (
+                <View style={[styles.chatBubble, styles.aiBubble, { backgroundColor: colors.card }]}>
+                  <View style={[styles.typingRow, isRTL && styles.aiHeaderRTL]}>
+                    <Ionicons name="sparkles" size={14} color={colors.primary} />
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                </View>
+              ) : null
             }
             renderItem={({ item }) => (
               <View style={[
@@ -311,11 +381,15 @@ export default function AIAssistantScreen() {
                   : [styles.aiBubble, { backgroundColor: colors.card }],
               ]}>
                 {item.role === 'assistant' && (
-                  <Ionicons name="sparkles" size={14} color={colors.primary} style={{ marginBottom: 4 }} />
+                  <View style={[styles.aiBubbleLabel, isRTL && styles.aiHeaderRTL]}>
+                    <Ionicons name="sparkles" size={12} color={colors.primary} />
+                    <Text style={[styles.aiBubbleLabelText, { color: colors.primary }]}>Vibe</Text>
+                  </View>
                 )}
                 <Text style={[
                   styles.chatBubbleText,
                   { color: item.role === 'user' ? '#fff' : colors.text },
+                  isRTL && styles.inputRTL,
                 ]}>
                   {item.content}
                 </Text>
@@ -323,17 +397,28 @@ export default function AIAssistantScreen() {
             )}
           />
           <View style={[styles.chatInputRow, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+            {prompts.length > 0 && (
+              <Pressable
+                style={[styles.chainBtn, { borderColor: colors.border }]}
+                onPress={() => setShowPromptPicker(true)}
+                hitSlop={6}
+                accessibilityLabel={t('addPromptToChat', language)}
+              >
+                <Ionicons name="git-branch-outline" size={20} color={colors.primary} />
+              </Pressable>
+            )}
             <TextInput
-              style={[styles.chatTextInput, { color: colors.text, backgroundColor: colors.background }]}
+              style={[styles.chatTextInput, { color: colors.text, backgroundColor: colors.background }, isRTL && styles.inputRTL]}
               value={chatInput}
               onChangeText={setChatInput}
               placeholder={t('chatPlaceholder', language)}
               placeholderTextColor={colors.textMuted}
               multiline
+              textAlignVertical="top"
             />
             <Pressable
               style={[styles.sendBtn, { backgroundColor: colors.primary }, (!chatInput.trim() || loading) && { opacity: 0.5 }]}
-              onPress={handleSendChat}
+              onPress={() => handleSendChat()}
               disabled={!chatInput.trim() || loading}
             >
               {loading ? (
@@ -346,6 +431,41 @@ export default function AIAssistantScreen() {
           {Platform.OS === 'android' && (
             <Animated.View style={{ height: keyboardHeight, backgroundColor: colors.card }} />
           )}
+
+          {/* Prompt chaining picker: feed an existing prompt into the conversation */}
+          <Modal visible={showPromptPicker} transparent animationType="slide" onRequestClose={() => setShowPromptPicker(false)}>
+            <Pressable style={[styles.pickerOverlay, { backgroundColor: colors.overlay }]} onPress={() => setShowPromptPicker(false)}>
+              <Pressable style={[styles.pickerSheet, { backgroundColor: colors.card }]} onPress={() => {}}>
+                <View style={[styles.pickerHeader, isRTL && styles.aiHeaderRTL]}>
+                  <Text style={[styles.pickerTitle, { color: colors.text }]}>{t('addPromptToChat', language)}</Text>
+                  <Pressable onPress={() => setShowPromptPicker(false)} hitSlop={8}>
+                    <Ionicons name="close" size={22} color={colors.text} />
+                  </Pressable>
+                </View>
+                <FlatList
+                  data={prompts}
+                  keyExtractor={item => item.id}
+                  style={{ maxHeight: 360 }}
+                  renderItem={({ item }) => (
+                    <Pressable
+                      style={[styles.pickerItem, { borderBottomColor: colors.border }]}
+                      onPress={() => {
+                        setShowPromptPicker(false);
+                        handleSendChat(item.content);
+                      }}
+                    >
+                      <Text style={[styles.pickerItemTitle, { color: colors.text }, isRTL && styles.inputRTL]} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      <Text style={[styles.pickerItemPreview, { color: colors.textMuted }, isRTL && styles.inputRTL]} numberOfLines={2}>
+                        {item.content}
+                      </Text>
+                    </Pressable>
+                  )}
+                />
+              </Pressable>
+            </Pressable>
+          </Modal>
         </View>
       ) : (
         /* Tools View */
@@ -366,7 +486,7 @@ export default function AIAssistantScreen() {
 
           {/* Input */}
           <TextInput
-            style={[styles.textArea, { borderColor: colors.border, color: colors.text, backgroundColor: colors.card }]}
+            style={[styles.textArea, { borderColor: colors.border, color: colors.text, backgroundColor: colors.card }, isRTL && styles.inputRTL]}
             value={input}
             onChangeText={setInput}
             placeholder={activeTab === 'generate' ? t('describePrompt', language) : t('pastePrompt', language)}
@@ -516,13 +636,38 @@ const styles = StyleSheet.create({
 
   // Chat styles
   chatContainer: { flex: 1 },
+  assistantBar: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  assistantBadge: {
+    width: 32, height: 32, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  assistantName: { fontSize: FONT_SIZE.md, fontWeight: '700' },
+  assistantMeta: { fontSize: FONT_SIZE.xs },
   chatList: { flex: 1 },
-  chatContent: { padding: SPACING.lg, gap: SPACING.md },
-  chatEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60 },
-  chatEmptyText: { fontSize: FONT_SIZE.md, marginTop: SPACING.md, textAlign: 'center' },
+  chatContent: { padding: SPACING.lg, gap: SPACING.md, flexGrow: 1 },
+  chatEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 40, paddingHorizontal: SPACING.lg },
+  chatEmptyIcon: {
+    width: 72, height: 72, borderRadius: 36,
+    alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.lg,
+  },
+  chatEmptyTitle: { fontSize: FONT_SIZE.xl, fontWeight: '700', marginBottom: SPACING.xs },
+  chatEmptyText: { fontSize: FONT_SIZE.sm, textAlign: 'center', lineHeight: 20 },
+  suggestionWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, justifyContent: 'center', marginTop: SPACING.xl },
+  suggestionChip: {
+    paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.full, borderWidth: 1, maxWidth: '90%',
+  },
+  suggestionChipText: { fontSize: FONT_SIZE.sm },
   chatBubble: { maxWidth: '85%', padding: SPACING.md, borderRadius: RADIUS.lg },
   userBubble: { alignSelf: 'flex-end', borderBottomRightRadius: SPACING.xs },
   aiBubble: { alignSelf: 'flex-start', borderBottomLeftRadius: SPACING.xs, ...SHADOW.card },
+  aiBubbleLabel: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
+  aiBubbleLabelText: { fontSize: FONT_SIZE.xs, fontWeight: '700' },
+  typingRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
   chatBubbleText: { fontSize: FONT_SIZE.md, lineHeight: 22 },
   chatInputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: SPACING.sm,
@@ -532,10 +677,28 @@ const styles = StyleSheet.create({
     flex: 1, borderRadius: RADIUS.lg, paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm, fontSize: FONT_SIZE.md, maxHeight: 100,
   },
+  inputRTL: { textAlign: 'right', writingDirection: 'rtl' },
   sendBtn: {
     width: 40, height: 40, borderRadius: 20,
     alignItems: 'center', justifyContent: 'center',
   },
+  chainBtn: {
+    width: 40, height: 40, borderRadius: 20, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  pickerOverlay: { flex: 1, justifyContent: 'flex-end' },
+  pickerSheet: {
+    borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl,
+    paddingBottom: SPACING.xl, maxHeight: '70%',
+  },
+  pickerHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: SPACING.lg,
+  },
+  pickerTitle: { fontSize: FONT_SIZE.lg, fontWeight: '700' },
+  pickerItem: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, borderBottomWidth: StyleSheet.hairlineWidth },
+  pickerItemTitle: { fontSize: FONT_SIZE.md, fontWeight: '600' },
+  pickerItemPreview: { fontSize: FONT_SIZE.xs, lineHeight: 18, marginTop: 2 },
 
   // Tools styles
   toolBody: { flex: 1 },

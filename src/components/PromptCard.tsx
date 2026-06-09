@@ -16,9 +16,10 @@ interface Props {
   prompt: VibeNote;
   onUse: (prompt: VibeNote) => void;
   compact?: boolean;
+  note?: boolean;
 }
 
-export default function PromptCard({ prompt, onUse, compact }: Props) {
+export default function PromptCard({ prompt, onUse, compact, note }: Props) {
   const toggleFavorite = usePromptStore(s => s.toggleFavorite);
   const incrementUsage = usePromptStore(s => s.incrementUsage);
   const navigate = useNavigationStore(s => s.navigate);
@@ -38,6 +39,38 @@ export default function PromptCard({ prompt, onUse, compact }: Props) {
   const handleUse = () => {
     onUse(prompt);
   };
+
+  if (note) {
+    return (
+      <Pressable
+        style={[styles.noteRow, { borderBottomColor: colors.border }, isRTL && styles.rowRTL]}
+        onPress={() => navigate('PromptDetail', { promptId: prompt.id })}
+      >
+        <View style={[styles.noteAccent, { backgroundColor: catInfo?.color || colors.primary }]} />
+        <View style={styles.noteBody}>
+          <View style={[styles.noteHeader, isRTL && styles.rowRTL]}>
+            <Text style={[styles.noteTitle, { color: colors.text }, isRTL && styles.textRTL]} numberOfLines={1}>
+              {prompt.title}
+            </Text>
+            {prompt.isPinned && <Ionicons name="pin" size={12} color={colors.primary} />}
+            {prompt.isFavorite && <Ionicons name="heart" size={12} color="#EF4444" />}
+          </View>
+          <Text style={[styles.notePreview, { color: colors.textSecondary }, isRTL && styles.textRTL]} numberOfLines={3}>
+            {prompt.content}
+          </Text>
+          <View style={[styles.noteMeta, isRTL && styles.rowRTL]}>
+            <Text style={[styles.noteMetaText, { color: colors.textMuted }]}>
+              {prompt.platform} · {formatTokenCount(tokenCount)} tok
+            </Text>
+            {hasVars && <Text style={[styles.noteMetaText, { color: colors.primary }]}>· {'{{ }}'}</Text>}
+            {prompt.usageCount > 0 && (
+              <Text style={[styles.noteMetaText, { color: colors.textMuted }]}>· {prompt.usageCount}×</Text>
+            )}
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
 
   if (compact) {
     return (
@@ -183,6 +216,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs, borderRadius: RADIUS.sm,
   },
   actionBtnText: { fontSize: FONT_SIZE.sm, color: '#fff', fontWeight: '600' },
+
+  // Notes view styles
+  noteRow: {
+    flexDirection: 'row', gap: SPACING.md,
+    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  noteAccent: { width: 3, borderRadius: RADIUS.full, alignSelf: 'stretch' },
+  noteBody: { flex: 1 },
+  noteHeader: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, marginBottom: 2 },
+  noteTitle: { flex: 1, fontSize: FONT_SIZE.md, fontWeight: '700' },
+  notePreview: { fontSize: FONT_SIZE.sm, lineHeight: 20 },
+  noteMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: SPACING.xs },
+  noteMetaText: { fontSize: FONT_SIZE.xs },
 
   // Compact/Grid styles
   compactCard: {

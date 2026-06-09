@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, FlatList, Text, Pressable, TextInput, StyleSheet, SectionList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SPACING, FONT_SIZE, RADIUS, SHADOW, CATEGORIES } from '@/constants';
+import { SPACING, FONT_SIZE, RADIUS, CATEGORIES } from '@/constants';
 import { useThemeColors } from '@/hooks/useTheme';
 import CategoryFilter from '@/components/CategoryFilter';
 import PromptCard from '@/components/PromptCard';
@@ -10,10 +10,9 @@ import VariableFiller from '@/components/VariableFiller';
 import { usePromptStore } from '@/stores/promptStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { t } from '@/i18n/strings';
-import { estimateTokens, formatTokenCount } from '@/utils/tokenCounter';
 import type { VibeNote } from '@/types';
 
-type ViewMode = 'list' | 'grid' | 'category';
+type ViewMode = 'list' | 'notes' | 'grid' | 'category';
 type SortMode = 'newest' | 'oldest' | 'mostUsed' | 'alphabetical';
 
 export default function HomeScreen() {
@@ -101,14 +100,14 @@ export default function HomeScreen() {
       {/* Toolbar: View modes + Sort + Filter */}
       <View style={[styles.toolbar, isRTL && { flexDirection: 'row-reverse' }]}>
         <View style={[styles.viewModes, isRTL && { flexDirection: 'row-reverse' }]}>
-          {(['list', 'grid', 'category'] as const).map(mode => (
+          {(['list', 'notes', 'grid', 'category'] as const).map(mode => (
             <Pressable
               key={mode}
               style={[styles.viewModeBtn, viewMode === mode && { backgroundColor: colors.primary + '20' }]}
               onPress={() => setViewMode(mode)}
             >
               <Ionicons
-                name={mode === 'list' ? 'list' : mode === 'grid' ? 'grid' : 'layers'}
+                name={mode === 'list' ? 'list' : mode === 'notes' ? 'reader-outline' : mode === 'grid' ? 'grid' : 'layers'}
                 size={16}
                 color={viewMode === mode ? colors.primary : colors.textMuted}
               />
@@ -170,10 +169,16 @@ export default function HomeScreen() {
           key={viewMode}
           data={sortedPrompts}
           keyExtractor={item => item.id}
-          renderItem={viewMode === 'grid' ? renderGridItem : ({ item }) => <PromptCard prompt={item} onUse={setFillerPrompt} />}
+          renderItem={
+            viewMode === 'grid'
+              ? renderGridItem
+              : viewMode === 'notes'
+                ? ({ item }) => <PromptCard prompt={item} onUse={setFillerPrompt} note />
+                : ({ item }) => <PromptCard prompt={item} onUse={setFillerPrompt} />
+          }
           numColumns={viewMode === 'grid' ? 2 : 1}
           ListEmptyComponent={!isLoading ? renderEmpty : null}
-          contentContainerStyle={sortedPrompts.length === 0 ? styles.emptyList : styles.list}
+          contentContainerStyle={sortedPrompts.length === 0 ? styles.emptyList : viewMode === 'notes' ? styles.notesList : styles.list}
           showsVerticalScrollIndicator={false}
         />
       )}
@@ -221,6 +226,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { fontSize: FONT_SIZE.md, fontWeight: '700' },
   list: { paddingBottom: 100 },
+  notesList: { paddingBottom: 100, paddingTop: SPACING.xs },
   emptyList: { flex: 1 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 100 },
   emptyTitle: { fontSize: FONT_SIZE.xl, fontWeight: '600', marginTop: SPACING.lg },

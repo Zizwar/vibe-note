@@ -7,6 +7,7 @@ import PlatformBadge from '@/components/PlatformBadge';
 import VariableFiller from '@/components/VariableFiller';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { hasVariables } from '@/engine/variableParser';
+import { isAIConfigured } from '@/engine/aiService';
 import { copyToClipboard } from '@/utils/clipboard';
 import { sharePromptFile } from '@/engine/importExport';
 import { estimateTokens, formatTokenCount } from '@/utils/tokenCounter';
@@ -209,6 +210,16 @@ export default function PromptDetailScreen({ promptId }: Props) {
             color={prompt.isFavorite ? '#EF4444' : colors.textMuted}
           />
         </Pressable>
+
+        {isAIConfigured() && (
+          <Pressable
+            style={[styles.favBtn, { backgroundColor: colors.background }]}
+            onPress={() => navigate('AIAssistant', { seedPrompt: prompt.content })}
+            accessibilityLabel={t('chatWithAI', language)}
+          >
+            <Ionicons name="chatbubbles-outline" size={24} color={colors.primary} />
+          </Pressable>
+        )}
 
         {hasVars ? (
           <Pressable style={[styles.mainAction, { backgroundColor: colors.primary }]} onPress={() => setShowFiller(true)}>

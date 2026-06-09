@@ -64,7 +64,7 @@ const DEFAULT_AI_PROVIDERS: AIProviderConfig[] = [
     name: 'OpenRouter',
     apiKey: '',
     baseUrl: 'https://openrouter.ai/api/v1',
-    model: 'openai/gpt-4o-mini',
+    model: 'google/gemini-3.5-flash',
     isActive: false,
   },
   {
@@ -72,7 +72,7 @@ const DEFAULT_AI_PROVIDERS: AIProviderConfig[] = [
     name: 'OpenAI',
     apiKey: '',
     baseUrl: 'https://api.openai.com/v1',
-    model: 'gpt-4o-mini',
+    model: 'gpt-5.4-mini',
     isActive: false,
   },
 ];

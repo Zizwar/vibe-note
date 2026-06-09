@@ -8,11 +8,13 @@ import { RADIUS, SPACING, FONT_SIZE, SHADOW } from '@/constants';
 import { useThemeColors } from '@/hooks/useTheme';
 import { extractVariables, buildFinalPrompt } from '@/engine/variableParser';
 import { copyToClipboard } from '@/utils/clipboard';
+import { isAIConfigured } from '@/engine/aiService';
 import { sharePromptFile } from '@/engine/importExport';
 import { estimateTokens, formatTokenCount } from '@/utils/tokenCounter';
 import { usePromptStore } from '@/stores/promptStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useHistoryStore } from '@/stores/historyStore';
+import { useNavigationStore } from '@/stores/navigationStore';
 import { t } from '@/i18n/strings';
 import type { VibeNote } from '@/types';
 
@@ -37,6 +39,7 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
   const addHistory = useHistoryStore(s => s.addHistory);
   const loadHistory = useHistoryStore(s => s.loadHistory);
   const history = useHistoryStore(s => s.history);
+  const navigate = useNavigationStore(s => s.navigate);
   const colors = useThemeColors();
 
   const variables = localContent ? extractVariables(localContent) : [];
@@ -78,6 +81,20 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
   const handleShare = async () => {
     if (!prompt) return;
     await sharePromptFile(prompt, false);
+  };
+
+  const handleChatWithAI = () => {
+    if (!prompt) return;
+    const final = buildFinalPrompt(localContent, values);
+    incrementUsage(prompt.id);
+    addHistory({
+      promptId: prompt.id,
+      promptTitle: prompt.title,
+      values: { ...values },
+      timestamp: Date.now(),
+    });
+    onClose();
+    navigate('AIAssistant', { seedPrompt: final });
   };
 
   const handleSaveValue = (varName: string, value: string) => {
@@ -219,11 +236,13 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
                     </View>
                     <View style={[styles.addOptionRow, isRTL && { flexDirection: 'row-reverse' }]}>
                       <TextInput
-                        style={[styles.addOptionInput, { borderColor: colors.border, color: colors.text, backgroundColor: colors.background }]}
+                        style={[styles.addOptionInput, { borderColor: colors.border, color: colors.text, backgroundColor: colors.background }, isRTL && styles.inputRTL]}
                         value={customInputs[v.name] || ''}
                         onChangeText={text => setCustomInputs(prev => ({ ...prev, [v.name]: text }))}
                         placeholder={t('customValue', language)}
                         placeholderTextColor={colors.textMuted}
+                        multiline
+                        textAlignVertical="top"
                       />
                       <Pressable
                         style={[styles.addOptionBtn, { backgroundColor: colors.primary }]}
@@ -240,6 +259,8 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
                     onChangeText={text => setValues(prev => ({ ...prev, [v.name]: text }))}
                     placeholder={v.defaultValue || v.name}
                     placeholderTextColor={colors.textMuted}
+                    multiline
+                    textAlignVertical="top"
                   />
                 )}
               </View>
@@ -247,6 +268,15 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
           </ScrollView>
 
           <View style={[styles.actions, { borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, SPACING.md) }]}>
+            {isAIConfigured() && (
+              <Pressable
+                style={[styles.chatBtn, { borderColor: colors.primary }]}
+                onPress={handleChatWithAI}
+                accessibilityLabel={t('chatWithAI', language)}
+              >
+                <Ionicons name="chatbubbles-outline" size={18} color={colors.primary} />
+              </Pressable>
+            )}
             <Pressable style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={handleCopyWithValues}>
               <Ionicons name="copy" size={14} color="#fff" />
               <Text style={styles.primaryBtnText}>{t('copyWithValues', language)}</Text>
@@ -297,8 +327,11 @@ const styles = StyleSheet.create({
   label: { fontSize: FONT_SIZE.md, fontWeight: '600', textTransform: 'capitalize' },
   textRTL: { textAlign: 'right' },
   saveBtn: { padding: 4, borderRadius: RADIUS.sm, borderWidth: 1 },
-  input: { borderWidth: 1, borderRadius: RADIUS.md, padding: SPACING.md, fontSize: FONT_SIZE.md },
-  inputRTL: { textAlign: 'right' },
+  input: {
+    borderWidth: 1, borderRadius: RADIUS.md, padding: SPACING.md, fontSize: FONT_SIZE.md,
+    minHeight: 48, maxHeight: 180, lineHeight: 22,
+  },
+  inputRTL: { textAlign: 'right', writingDirection: 'rtl' },
   optionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
   optionChip: {
     paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
@@ -306,10 +339,11 @@ const styles = StyleSheet.create({
   },
   optionText: { fontSize: FONT_SIZE.sm },
   optionTextActive: { color: '#fff', fontWeight: '600' },
-  addOptionRow: { flexDirection: 'row', gap: SPACING.sm, marginTop: SPACING.sm },
+  addOptionRow: { flexDirection: 'row', alignItems: 'flex-end', gap: SPACING.sm, marginTop: SPACING.sm },
   addOptionInput: {
     flex: 1, borderWidth: 1, borderRadius: RADIUS.md,
     padding: SPACING.sm, fontSize: FONT_SIZE.sm,
+    minHeight: 36, maxHeight: 120, lineHeight: 20,
   },
   addOptionBtn: {
     width: 36, height: 36, borderRadius: RADIUS.md,
@@ -330,4 +364,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm, borderRadius: RADIUS.md, borderWidth: 1,
   },
   secondaryBtnText: { fontSize: FONT_SIZE.sm, fontWeight: '600' },
+  chatBtn: {
+    width: 44, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: SPACING.sm, borderRadius: RADIUS.md, borderWidth: 1,
+  },
 });
