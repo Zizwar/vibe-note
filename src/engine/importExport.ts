@@ -6,7 +6,7 @@ import type { VibeNote } from '@/types';
 export function exportToJson(prompts: VibeNote[]): string {
   return JSON.stringify(
     {
-      version: 1,
+      version: 2,
       type: 'backup',
       exportedAt: new Date().toISOString(),
       count: prompts.length,
@@ -25,10 +25,11 @@ export function exportPromptToVibe(prompt: VibeNote): string {
     .slice(0, 50);
   return JSON.stringify(
     {
-      version: 1,
+      version: 2,
       type: 'prompt',
       exportedAt: new Date().toISOString(),
       prompt: {
+        kind: prompt.kind,
         title: prompt.title,
         content: prompt.content,
         description: prompt.description,

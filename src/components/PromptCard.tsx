@@ -10,6 +10,7 @@ import { copyToClipboard } from '@/utils/clipboard';
 import { usePromptStore } from '@/stores/promptStore';
 import { useNavigationStore } from '@/stores/navigationStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { t } from '@/i18n/strings';
 import type { VibeNote } from '@/types';
 
 interface Props {
@@ -24,12 +25,19 @@ export default function PromptCard({ prompt, onUse, compact, note }: Props) {
   const incrementUsage = usePromptStore(s => s.incrementUsage);
   const navigate = useNavigationStore(s => s.navigate);
   const isRTL = useSettingsStore(s => s.isRTL);
+  const language = useSettingsStore(s => s.language);
   const customCategories = useSettingsStore(s => s.customCategories);
   const colors = useThemeColors();
   const allCategories = [...CATEGORIES, ...customCategories];
   const catInfo = allCategories.find(c => c.value === prompt.category);
   const hasVars = hasVariables(prompt.content);
   const tokenCount = estimateTokens(prompt.content);
+
+  const kindMeta = prompt.kind === 'note'
+    ? { icon: 'reader-outline' as const, label: t('kindNote', language), color: '#F59E0B' }
+    : prompt.kind === 'context'
+      ? { icon: 'layers-outline' as const, label: t('kindContext', language), color: '#8B5CF6' }
+      : null;
 
   const handleCopy = async () => {
     await copyToClipboard(prompt.content);
@@ -52,6 +60,7 @@ export default function PromptCard({ prompt, onUse, compact, note }: Props) {
             <Text style={[styles.noteTitle, { color: colors.text }, isRTL && styles.textRTL]} numberOfLines={1}>
               {prompt.title}
             </Text>
+            {kindMeta && <Ionicons name={kindMeta.icon} size={12} color={kindMeta.color} />}
             {prompt.isPinned && <Ionicons name="pin" size={12} color={colors.primary} />}
             {prompt.isFavorite && <Ionicons name="heart" size={12} color="#EF4444" />}
           </View>
@@ -115,6 +124,12 @@ export default function PromptCard({ prompt, onUse, compact, note }: Props) {
     >
       <View style={[styles.topRow, isRTL && styles.rowRTL]}>
         <PlatformBadge platform={prompt.platform} />
+        {kindMeta && (
+          <View style={[styles.kindBadge, { backgroundColor: kindMeta.color + '18' }]}>
+            <Ionicons name={kindMeta.icon} size={11} color={kindMeta.color} />
+            <Text style={[styles.catText, { color: kindMeta.color }]}>{kindMeta.label}</Text>
+          </View>
+        )}
         {prompt.isPinned && (
           <Ionicons name="pin" size={14} color={colors.primary} />
         )}
@@ -196,6 +211,10 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.sm },
   rowRTL: { flexDirection: 'row-reverse' },
   catBadge: { paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: RADIUS.full },
+  kindBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: RADIUS.full,
+  },
   catText: { fontSize: FONT_SIZE.xs, fontWeight: '600' },
   tokenLabel: { fontSize: FONT_SIZE.xs },
   title: { fontSize: FONT_SIZE.lg, fontWeight: '700', marginBottom: 4 },

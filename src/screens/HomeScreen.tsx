@@ -10,7 +10,7 @@ import VariableFiller from '@/components/VariableFiller';
 import { usePromptStore } from '@/stores/promptStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { t } from '@/i18n/strings';
-import type { VibeNote } from '@/types';
+import type { VibeNote, ItemKind } from '@/types';
 
 type ViewMode = 'list' | 'notes' | 'grid' | 'category';
 type SortMode = 'newest' | 'oldest' | 'mostUsed' | 'alphabetical';
@@ -20,6 +20,8 @@ export default function HomeScreen() {
   const isLoading = usePromptStore(s => s.isLoading);
   const loadPrompts = usePromptStore(s => s.loadPrompts);
   const setSearchQuery = usePromptStore(s => s.setSearchQuery);
+  const activeKind = usePromptStore(s => s.activeKind);
+  const setActiveKind = usePromptStore(s => s.setActiveKind);
   const language = useSettingsStore(s => s.language);
   const isRTL = useSettingsStore(s => s.isRTL);
   const customCategories = useSettingsStore(s => s.customCategories);
@@ -95,6 +97,38 @@ export default function HomeScreen() {
             <Ionicons name="close-circle" size={18} color={colors.textMuted} />
           </Pressable>
         )}
+      </View>
+
+      {/* Kind filter: All / Prompts / Notes / Contexts */}
+      <View style={[styles.kindRow, isRTL && { flexDirection: 'row-reverse' }]}>
+        {([
+          { key: null, label: t('all', language), icon: 'apps-outline' },
+          { key: 'prompt', label: t('kindPrompts', language), icon: 'flash-outline' },
+          { key: 'note', label: t('kindNotes', language), icon: 'reader-outline' },
+          { key: 'context', label: t('kindContexts', language), icon: 'layers-outline' },
+        ] as Array<{ key: ItemKind | null; label: string; icon: string }>).map(k => (
+          <Pressable
+            key={k.key ?? 'all'}
+            style={[
+              styles.kindChip,
+              { borderColor: colors.border, backgroundColor: colors.card },
+              activeKind === k.key && { backgroundColor: colors.primary, borderColor: colors.primary },
+            ]}
+            onPress={() => setActiveKind(k.key)}
+          >
+            <Ionicons
+              name={k.icon as any}
+              size={13}
+              color={activeKind === k.key ? '#fff' : colors.textSecondary}
+            />
+            <Text style={[
+              styles.kindChipText,
+              { color: activeKind === k.key ? '#fff' : colors.textSecondary },
+            ]}>
+              {k.label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
       {/* Toolbar: View modes + Sort + Filter */}
@@ -201,6 +235,16 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.lg, marginBottom: SPACING.sm, gap: SPACING.sm,
   },
   searchInput: { flex: 1, fontSize: FONT_SIZE.md, padding: 0 },
+  kindRow: {
+    flexDirection: 'row', gap: SPACING.xs,
+    paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm,
+  },
+  kindChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.full, borderWidth: 1,
+  },
+  kindChipText: { fontSize: FONT_SIZE.xs, fontWeight: '600' },
   toolbar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm,

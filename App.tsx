@@ -9,7 +9,6 @@ import * as LegacyFileSystem from 'expo-file-system/legacy';
 import { getDatabase } from '@/database/connection';
 import { initializeDatabase } from '@/database/schema';
 import { seedDatabase } from '@/database/seed';
-import { initHistoryTable } from '@/stores/historyStore';
 import { loadSettingsFromStorage } from '@/stores/settingsStore';
 import { importPrompts } from '@/database/queries';
 import { parseImportJson } from '@/engine/importExport';
@@ -54,6 +53,7 @@ export default function App() {
       const db = getDatabase();
       const promptsToImport: VibeNote[] = parsed.prompts.map((p: any) => ({
         id: p.id || generateId(),
+        kind: p.kind === 'note' || p.kind === 'context' ? p.kind : 'prompt',
         title: p.title || 'Imported Prompt',
         content: p.content || '',
         description: p.description,
@@ -61,6 +61,8 @@ export default function App() {
         platform: p.platform || 'chatgpt',
         tags: p.tags || [],
         variables: p.variables || [],
+        linkedIds: Array.isArray(p.linkedIds) ? p.linkedIds : [],
+        contextIds: Array.isArray(p.contextIds) ? p.contextIds : [],
         isFavorite: false,
         isPinned: false,
         usageCount: 0,
@@ -84,7 +86,6 @@ export default function App() {
       try {
         const db = getDatabase();
         initializeDatabase(db);
-        initHistoryTable(db);
         seedDatabase(db);
         await loadSettingsFromStorage();
         setReady(true);
