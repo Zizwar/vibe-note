@@ -25,6 +25,18 @@ const PROVIDER_MODELS: Record<string, ModelItem[]> = {
     { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', desc: 'Reliable · Free quota' },
     { id: 'gemini-flash-latest', name: 'Gemini Flash (latest)', desc: 'Always-latest flash alias' },
   ],
+  anthropic: [
+    { id: 'claude-opus-4-8', name: 'Claude Opus 4.8', desc: 'Most capable' },
+    { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', desc: 'Best balance (recommended)' },
+    { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', desc: 'Fast & affordable' },
+  ],
+  ollama: [
+    { id: 'llama3.2', name: 'Llama 3.2', desc: 'Meta · Small & fast' },
+    { id: 'qwen3', name: 'Qwen 3', desc: 'Alibaba · Capable' },
+    { id: 'gemma3', name: 'Gemma 3', desc: 'Google · Efficient' },
+    { id: 'deepseek-r1', name: 'DeepSeek R1', desc: 'Reasoning model' },
+    { id: 'mistral', name: 'Mistral', desc: 'Mistral · General purpose' },
+  ],
   openai: [
     { id: 'gpt-5.5', name: 'GPT-5.5', desc: 'Flagship · Most capable' },
     { id: 'gpt-5.5-pro', name: 'GPT-5.5 Pro', desc: 'Highest precision' },
@@ -67,6 +79,18 @@ const PROVIDER_INFO: Record<string, { desc: string; keyUrl: string; icon: string
     icon: 'flash',
     color: '#10A37F',
   },
+  anthropic: {
+    desc: 'anthropicDesc',
+    keyUrl: 'https://console.anthropic.com/settings/keys',
+    icon: 'aperture',
+    color: '#D97757',
+  },
+  ollama: {
+    desc: 'ollamaDesc',
+    keyUrl: 'https://ollama.com/download',
+    icon: 'hardware-chip',
+    color: '#64748B',
+  },
 };
 
 export default function AISettingsScreen() {
@@ -98,7 +122,8 @@ export default function AISettingsScreen() {
 
   const handleActivate = (id: string) => {
     const provider = aiProviders.find(p => p.id === id);
-    if (!provider?.apiKey) {
+    if (!provider) return;
+    if (!provider.apiKey && provider.requiresKey !== false) {
       Alert.alert('Error', 'Please enter an API key first');
       return;
     }
@@ -156,6 +181,17 @@ export default function AISettingsScreen() {
               placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
             />
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('baseUrl', language)}</Text>
+            <TextInput
+              style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.background }]}
+              value={provider.baseUrl}
+              onChangeText={(text) => updateAIProvider(provider.id, { baseUrl: text })}
+              placeholder="https://…"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
             {PROVIDER_MODELS[provider.id] && (
               <Pressable
                 style={[styles.modelPickerBtn, { borderColor: colors.border, backgroundColor: colors.background }]}

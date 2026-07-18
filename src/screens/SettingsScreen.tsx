@@ -51,6 +51,7 @@ export default function SettingsScreen() {
 
       const promptsToImport: VibeNote[] = parsed.prompts.map((p: any) => ({
         id: p.id || generateId(),
+        kind: p.kind === 'note' || p.kind === 'context' ? p.kind : 'prompt',
         title: p.title || 'Imported Prompt',
         content: p.content || '',
         description: p.description,
@@ -58,6 +59,8 @@ export default function SettingsScreen() {
         platform: p.platform || 'chatgpt',
         tags: p.tags || [],
         variables: p.variables || [],
+        linkedIds: Array.isArray(p.linkedIds) ? p.linkedIds : [],
+        contextIds: Array.isArray(p.contextIds) ? p.contextIds : [],
         isFavorite: p.isFavorite || false,
         isPinned: p.isPinned || false,
         usageCount: p.usageCount || 0,

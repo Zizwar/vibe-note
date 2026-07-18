@@ -7,21 +7,27 @@ import PromptCard from '@/components/PromptCard';
 import VariableFiller from '@/components/VariableFiller';
 import { usePromptStore } from '@/stores/promptStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { getDatabase } from '@/database/connection';
+import * as queries from '@/database/queries';
 import { t } from '@/i18n/strings';
 import type { VibeNote } from '@/types';
 
 export default function FavoritesScreen() {
+  // Subscribed as a change signal only — favorites are queried directly so
+  // Home's kind/category/search filters never leak into this screen
   const prompts = usePromptStore(s => s.prompts);
-  const loadPrompts = usePromptStore(s => s.loadPrompts);
   const language = useSettingsStore(s => s.language);
   const [fillerPrompt, setFillerPrompt] = useState<VibeNote | null>(null);
+  const [favorites, setFavorites] = useState<VibeNote[]>([]);
   const colors = useThemeColors();
 
   useEffect(() => {
-    loadPrompts();
-  }, []);
-
-  const favorites = prompts.filter(p => p.isFavorite);
+    try {
+      setFavorites(queries.getAllPrompts(getDatabase(), { isFavorite: true }));
+    } catch {
+      setFavorites([]);
+    }
+  }, [prompts]);
 
   const renderEmpty = () => (
     <View style={styles.empty}>

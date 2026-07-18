@@ -14,7 +14,7 @@ import { isAIConfigured, editPromptWithAI } from '@/engine/aiService';
 import { pickAndReadFile, parseImportJson } from '@/engine/importExport';
 import { estimateTokens, formatTokenCount } from '@/utils/tokenCounter';
 import { t } from '@/i18n/strings';
-import type { PromptCategory, AIPlatform } from '@/types';
+import type { PromptCategory, AIPlatform, ItemKind } from '@/types';
 
 interface Props {
   promptId?: string;
@@ -25,6 +25,7 @@ export default function CreatePromptScreen({ promptId }: Props) {
   const updatePrompt = usePromptStore(s => s.updatePrompt);
   const getPromptById = usePromptStore(s => s.getPromptById);
   const goBack = useNavigationStore(s => s.goBack);
+  const navParams = useNavigationStore(s => s.params);
   const language = useSettingsStore(s => s.language);
   const isRTL = useSettingsStore(s => s.isRTL);
   const customCategories = useSettingsStore(s => s.customCategories);
@@ -36,6 +37,7 @@ export default function CreatePromptScreen({ promptId }: Props) {
 
   const isEditing = !!promptId;
 
+  const [kind, setKind] = useState<ItemKind>('prompt');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [description, setDescription] = useState('');
@@ -51,12 +53,20 @@ export default function CreatePromptScreen({ promptId }: Props) {
     if (promptId) {
       const prompt = getPromptById(promptId);
       if (prompt) {
+        setKind(prompt.kind);
         setTitle(prompt.title);
         setContent(prompt.content);
         setDescription(prompt.description || '');
         setCategory(prompt.category);
         setPlatform(prompt.platform);
         setTags(prompt.tags);
+      }
+    } else {
+      // Pre-fill when creating from elsewhere (e.g. saving a chat reply)
+      if (navParams.prefillTitle) setTitle(navParams.prefillTitle);
+      if (navParams.prefillContent) setContent(navParams.prefillContent);
+      if (navParams.prefillKind === 'note' || navParams.prefillKind === 'context' || navParams.prefillKind === 'prompt') {
+        setKind(navParams.prefillKind);
       }
     }
   }, [promptId]);
@@ -73,6 +83,7 @@ export default function CreatePromptScreen({ promptId }: Props) {
 
     if (isEditing && promptId) {
       updatePrompt(promptId, {
+        kind,
         title: finalTitle,
         content: content.trim(),
         description: description.trim() || undefined,
@@ -82,6 +93,7 @@ export default function CreatePromptScreen({ promptId }: Props) {
       });
     } else {
       addPrompt({
+        kind,
         title: finalTitle,
         content: content.trim(),
         description: description.trim() || undefined,
@@ -182,6 +194,34 @@ export default function CreatePromptScreen({ promptId }: Props) {
           </View>
         </View>
 
+        {/* Item kind: prompt / note / context */}
+        <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('itemKind', language)}</Text>
+        <View style={[styles.kindRow, isRTL && { flexDirection: 'row-reverse' }]}>
+          {([
+            { key: 'prompt', label: t('kindPrompt', language), icon: 'flash-outline', color: colors.primary },
+            { key: 'note', label: t('kindNote', language), icon: 'reader-outline', color: '#F59E0B' },
+            { key: 'context', label: t('kindContext', language), icon: 'layers-outline', color: '#8B5CF6' },
+          ] as Array<{ key: ItemKind; label: string; icon: string; color: string }>).map(k => (
+            <Pressable
+              key={k.key}
+              style={[
+                styles.kindChip,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                kind === k.key && { backgroundColor: k.color, borderColor: k.color },
+              ]}
+              onPress={() => setKind(k.key)}
+            >
+              <Ionicons name={k.icon as any} size={14} color={kind === k.key ? '#fff' : k.color} />
+              <Text style={[styles.chipText, { color: colors.text }, kind === k.key && styles.chipTextActive]}>
+                {k.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={[styles.hint, { color: colors.textMuted }, isRTL && styles.textRTL]}>
+          {kind === 'note' ? t('kindNoteHint', language) : kind === 'context' ? t('kindContextHint', language) : t('kindPromptHint', language)}
+        </Text>
+
         <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('title', language)}</Text>
         <TextInput
           style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.card }, isRTL && styles.inputRTL]}
@@ -201,7 +241,9 @@ export default function CreatePromptScreen({ promptId }: Props) {
           multiline
           textAlignVertical="top"
         />
-        <Text style={[styles.hint, { color: colors.textMuted }]}>{t('variableHint', language)}</Text>
+        {kind === 'prompt' && (
+          <Text style={[styles.hint, { color: colors.textMuted }]}>{t('variableHint', language)}</Text>
+        )}
 
         <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('description', language)}</Text>
         <TextInput
@@ -234,6 +276,8 @@ export default function CreatePromptScreen({ promptId }: Props) {
           ))}
         </View>
 
+        {kind === 'prompt' && (
+        <>
         <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('platform', language)}</Text>
         <View style={styles.chipGrid}>
           {allPlatforms.map(plat => (
@@ -253,6 +297,8 @@ export default function CreatePromptScreen({ promptId }: Props) {
             </Pressable>
           ))}
         </View>
+        </>
+        )}
 
         <Text style={[styles.label, { color: colors.text }, isRTL && styles.textRTL]}>{t('tags', language)}</Text>
         <TagInput tags={tags} onChange={setTags} />
@@ -335,6 +381,11 @@ const styles = StyleSheet.create({
   descriptionInput: { minHeight: 72, maxHeight: 160 },
   hint: { fontSize: FONT_SIZE.xs, marginTop: SPACING.xs, fontStyle: 'italic' },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+  kindRow: { flexDirection: 'row', gap: SPACING.sm },
+  kindChip: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+    paddingVertical: SPACING.sm, borderRadius: RADIUS.md, borderWidth: 1,
+  },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderRadius: RADIUS.full, borderWidth: 1,

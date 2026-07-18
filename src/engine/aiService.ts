@@ -1,6 +1,12 @@
 import { useSettingsStore, AIProviderConfig } from '@/stores/settingsStore';
 import { CATEGORIES } from '@/constants/categories';
 import { PLATFORMS } from '@/constants/platforms';
+import type { VibeNote } from '@/types';
+
+export interface AIMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
 
 interface AIResponse {
   text: string;
@@ -11,77 +17,125 @@ function getActiveProvider(): AIProviderConfig | null {
   const activeId = state.activeAIProvider;
   if (!activeId) return null;
   const provider = state.aiProviders.find(p => p.id === activeId);
-  if (!provider || !provider.apiKey) return null;
+  if (!provider) return null;
+  if (!provider.apiKey && provider.requiresKey !== false) return null;
   return provider;
 }
 
-async function callGemini(provider: AIProviderConfig, prompt: string): Promise<AIResponse> {
+/** Which wire protocol a provider speaks, detected by id or base URL */
+export function getProviderApi(provider: AIProviderConfig): 'gemini' | 'anthropic' | 'openai' {
+  if (provider.api) return provider.api;
+  const url = provider.baseUrl || '';
+  if (provider.id === 'gemini' || url.includes('generativelanguage.googleapis.com')) return 'gemini';
+  if (provider.id === 'anthropic' || url.includes('api.anthropic.com')) return 'anthropic';
+  return 'openai';
+}
+
+async function readError(res: Response, providerName: string): Promise<Error> {
+  let detail = '';
+  try {
+    const body = await res.text();
+    detail = body.slice(0, 200);
+  } catch {}
+  return new Error(`${providerName} error ${res.status}${detail ? `: ${detail}` : ''}`);
+}
+
+async function callGemini(provider: AIProviderConfig, messages: AIMessage[]): Promise<AIResponse> {
   const url = `${provider.baseUrl}/models/${provider.model}:generateContent?key=${provider.apiKey}`;
+  const systemText = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n');
+  const contents = messages
+    .filter(m => m.role !== 'system')
+    .map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
+
+  const body: any = {
+    contents,
+    generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
+  };
+  if (systemText) {
+    body.systemInstruction = { parts: [{ text: systemText }] };
+  }
+
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-    }),
+    body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
+  if (!res.ok) throw await readError(res, 'Gemini');
   const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || '').join('') || '';
   return { text };
 }
 
-async function callOpenAICompatible(provider: AIProviderConfig, prompt: string, messages?: Array<{role: string; content: string}>): Promise<AIResponse> {
+async function callAnthropic(provider: AIProviderConfig, messages: AIMessage[]): Promise<AIResponse> {
+  const systemText = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n');
   const body: any = {
     model: provider.model,
-    temperature: 0.7,
-    max_tokens: 2048,
+    max_tokens: 4096,
+    messages: messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({ role: m.role, content: m.content })),
   };
-  if (messages) {
-    body.messages = messages;
-  } else {
-    body.messages = [{ role: 'user', content: prompt }];
-  }
-  const res = await fetch(`${provider.baseUrl}/chat/completions`, {
+  if (systemText) body.system = systemText;
+
+  const res = await fetch(`${provider.baseUrl}/messages`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${provider.apiKey}`,
+      'x-api-key': provider.apiKey,
+      'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (!res.ok) throw await readError(res, 'Anthropic');
+  const data = await res.json();
+  const text = (data?.content || [])
+    .filter((block: any) => block.type === 'text')
+    .map((block: any) => block.text)
+    .join('') || '';
+  return { text };
+}
+
+async function callOpenAICompatible(provider: AIProviderConfig, messages: AIMessage[]): Promise<AIResponse> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (provider.apiKey) headers['Authorization'] = `Bearer ${provider.apiKey}`;
+
+  const res = await fetch(`${provider.baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      model: provider.model,
+      temperature: 0.7,
+      max_tokens: 4096,
+      messages,
+    }),
+  });
+  if (!res.ok) throw await readError(res, provider.name);
   const data = await res.json();
   const text = data?.choices?.[0]?.message?.content || '';
   return { text };
 }
 
-export async function callAI(prompt: string): Promise<string> {
+export async function callAIChat(messages: AIMessage[]): Promise<string> {
   const provider = getActiveProvider();
   if (!provider) throw new Error('No active AI provider configured');
 
+  const api = getProviderApi(provider);
   let response: AIResponse;
-  if (provider.id === 'gemini') {
-    response = await callGemini(provider, prompt);
+  if (api === 'gemini') {
+    response = await callGemini(provider, messages);
+  } else if (api === 'anthropic') {
+    response = await callAnthropic(provider, messages);
   } else {
-    response = await callOpenAICompatible(provider, prompt);
+    response = await callOpenAICompatible(provider, messages);
   }
   return response.text;
 }
 
-export async function callAIChat(messages: Array<{role: string; content: string}>): Promise<string> {
-  const provider = getActiveProvider();
-  if (!provider) throw new Error('No active AI provider configured');
-
-  if (provider.id === 'gemini') {
-    // Gemini uses a flat prompt, concatenate messages
-    const prompt = messages.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n\n');
-    const response = await callGemini(provider, prompt);
-    return response.text;
-  } else {
-    const response = await callOpenAICompatible(provider, '', messages);
-    return response.text;
-  }
+export async function callAI(prompt: string): Promise<string> {
+  return callAIChat([{ role: 'user', content: prompt }]);
 }
 
 export async function testAIConnection(): Promise<boolean> {
@@ -113,6 +167,23 @@ Examples:
 ALWAYS use snake_case for variable names. ALWAYS use double curly braces.
 Do NOT use other formats like {var}, [var], <var>, or %var%.
 `;
+
+/**
+ * System prompt for the in-app chat. Attached context items (kind='context')
+ * are injected as authoritative background the assistant must respect.
+ */
+export function buildChatSystemPrompt(contexts: VibeNote[]): string {
+  let system = `You are Vibe, a helpful AI assistant specialized in prompt engineering, built into the Vibe Note app. Help users create, improve, and understand AI prompts, and answer their questions directly. Reply in the same language the user writes in. If the user seems to want a reusable prompt template, offer to create one. When you think a template should be created, include the following JSON at the end of your message on its own line: {"action":"create_template","title":"...","content":"...","category":"...","platform":"..."} Use {{variable_name}} syntax for variables.`;
+
+  if (contexts.length > 0) {
+    const blocks = contexts
+      .map(c => `### ${c.title}\n${c.content}`)
+      .join('\n\n');
+    system += `\n\nThe user attached the following context. Treat it as authoritative background for this conversation:\n\n${blocks}`;
+  }
+
+  return system;
+}
 
 const categoryValues = CATEGORIES.map(c => c.value).join(', ');
 const platformValues = PLATFORMS.map(p => p.value).join(', ');

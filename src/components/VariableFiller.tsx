@@ -94,7 +94,7 @@ export default function VariableFiller({ prompt, visible, onClose }: Props) {
       timestamp: Date.now(),
     });
     onClose();
-    navigate('AIAssistant', { seedPrompt: final });
+    navigate('AIAssistant', { seedPrompt: final, seedPromptId: prompt.id, seedNonce: String(Date.now()) });
   };
 
   const handleSaveValue = (varName: string, value: string) => {
