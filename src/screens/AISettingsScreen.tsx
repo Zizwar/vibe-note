@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, Pressable, ScrollView, StyleSheet, Alert, Linking,
+  View, Text, TextInput, Pressable, ScrollView, StyleSheet, Alert, Linking, Modal, FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RADIUS, SPACING, FONT_SIZE, SHADOW } from '@/constants';
@@ -9,6 +9,56 @@ import { useSettingsStore, AIProviderConfig } from '@/stores/settingsStore';
 import { useNavigationStore } from '@/stores/navigationStore';
 import { testAIConnection } from '@/engine/aiService';
 import { t } from '@/i18n/strings';
+
+type ModelItem = { id: string; name: string; desc: string };
+
+// Model lists verified June 2026 against the live provider APIs
+// (Gemini ListModels, OpenAI models docs, OpenRouter /api/v1/models).
+const PROVIDER_MODELS: Record<string, ModelItem[]> = {
+  gemini: [
+    { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', desc: 'Newest · Fast (recommended)' },
+    { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash', desc: 'Gen-3 · Fast (preview)' },
+    { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', desc: 'Most capable (preview)' },
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Stable · Fast' },
+    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Stable · Most capable' },
+    { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', desc: 'Lightest & fastest' },
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', desc: 'Reliable · Free quota' },
+    { id: 'gemini-flash-latest', name: 'Gemini Flash (latest)', desc: 'Always-latest flash alias' },
+  ],
+  anthropic: [
+    { id: 'claude-opus-4-8', name: 'Claude Opus 4.8', desc: 'Most capable' },
+    { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', desc: 'Best balance (recommended)' },
+    { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', desc: 'Fast & affordable' },
+  ],
+  ollama: [
+    { id: 'llama3.2', name: 'Llama 3.2', desc: 'Meta · Small & fast' },
+    { id: 'qwen3', name: 'Qwen 3', desc: 'Alibaba · Capable' },
+    { id: 'gemma3', name: 'Gemma 3', desc: 'Google · Efficient' },
+    { id: 'deepseek-r1', name: 'DeepSeek R1', desc: 'Reasoning model' },
+    { id: 'mistral', name: 'Mistral', desc: 'Mistral · General purpose' },
+  ],
+  openai: [
+    { id: 'gpt-5.5', name: 'GPT-5.5', desc: 'Flagship · Most capable' },
+    { id: 'gpt-5.5-pro', name: 'GPT-5.5 Pro', desc: 'Highest precision' },
+    { id: 'gpt-5.4', name: 'GPT-5.4', desc: 'Affordable flagship' },
+    { id: 'gpt-5.4-mini', name: 'GPT-5.4 Mini', desc: 'Strong mini · Fast' },
+    { id: 'gpt-5.4-nano', name: 'GPT-5.4 Nano', desc: 'Cheapest · High-volume' },
+    { id: 'gpt-5.3-codex', name: 'GPT-5.3 Codex', desc: 'Agentic coding' },
+    { id: 'chat-latest', name: 'ChatGPT (latest)', desc: 'Latest instant model' },
+  ],
+  openrouter: [
+    { id: 'anthropic/claude-opus-4.8', name: 'Claude Opus 4.8', desc: 'Anthropic · Most capable' },
+    { id: 'anthropic/claude-opus-4.8-fast', name: 'Claude Opus 4.8 Fast', desc: 'Anthropic · Faster Opus' },
+    { id: 'anthropic/claude-sonnet-4.6', name: 'Claude Sonnet 4.6', desc: 'Anthropic · Best balance' },
+    { id: 'anthropic/claude-haiku-4.5', name: 'Claude Haiku 4.5', desc: 'Anthropic · Fast & cheap' },
+    { id: 'openai/gpt-5.5', name: 'GPT-5.5', desc: 'OpenAI · Flagship' },
+    { id: 'openai/gpt-5.4-mini', name: 'GPT-5.4 Mini', desc: 'OpenAI · Economical' },
+    { id: 'google/gemini-3.5-flash', name: 'Gemini 3.5 Flash', desc: 'Google · Fast' },
+    { id: 'deepseek/deepseek-v4-pro', name: 'DeepSeek V4 Pro', desc: 'DeepSeek · Strong reasoning' },
+    { id: 'qwen/qwen3.7-max', name: 'Qwen3.7 Max', desc: 'Alibaba · Capable' },
+    { id: 'meta-llama/llama-4-maverick', name: 'Llama 4 Maverick', desc: 'Meta · Open source' },
+  ],
+};
 
 const PROVIDER_INFO: Record<string, { desc: string; keyUrl: string; icon: string; color: string }> = {
   gemini: {
@@ -29,6 +79,18 @@ const PROVIDER_INFO: Record<string, { desc: string; keyUrl: string; icon: string
     icon: 'flash',
     color: '#10A37F',
   },
+  anthropic: {
+    desc: 'anthropicDesc',
+    keyUrl: 'https://console.anthropic.com/settings/keys',
+    icon: 'aperture',
+    color: '#D97757',
+  },
+  ollama: {
+    desc: 'ollamaDesc',
+    keyUrl: 'https://ollama.com/download',
+    icon: 'hardware-chip',
+    color: '#64748B',
+  },
 };
 
 export default function AISettingsScreen() {
@@ -43,6 +105,7 @@ export default function AISettingsScreen() {
 
   const [testing, setTesting] = useState(false);
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
+  const [modelPickerProvider, setModelPickerProvider] = useState<string | null>(null);
 
   const handleTest = async () => {
     setTesting(true);
@@ -59,7 +122,8 @@ export default function AISettingsScreen() {
 
   const handleActivate = (id: string) => {
     const provider = aiProviders.find(p => p.id === id);
-    if (!provider?.apiKey) {
+    if (!provider) return;
+    if (!provider.apiKey && provider.requiresKey !== false) {
       Alert.alert('Error', 'Please enter an API key first');
       return;
     }
@@ -117,6 +181,29 @@ export default function AISettingsScreen() {
               placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
             />
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('baseUrl', language)}</Text>
+            <TextInput
+              style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.background }]}
+              value={provider.baseUrl}
+              onChangeText={(text) => updateAIProvider(provider.id, { baseUrl: text })}
+              placeholder="https://…"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            {PROVIDER_MODELS[provider.id] && (
+              <Pressable
+                style={[styles.modelPickerBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
+                onPress={() => setModelPickerProvider(provider.id)}
+              >
+                <Ionicons name="list" size={15} color={colors.primary} />
+                <Text style={[styles.modelPickerBtnText, { color: colors.primary }]}>
+                  {language === 'ar' ? 'اختر من القائمة' : language === 'fr' ? 'Choisir dans la liste' : 'Choose from list'}
+                </Text>
+                <Ionicons name="chevron-down" size={15} color={colors.primary} />
+              </Pressable>
+            )}
 
             <View style={styles.providerActions}>
               {info && (
@@ -188,6 +275,57 @@ export default function AISettingsScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Model Picker Modal */}
+      <Modal
+        visible={!!modelPickerProvider}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModelPickerProvider(null)}
+      >
+        <Pressable style={styles.pickerOverlay} onPress={() => setModelPickerProvider(null)}>
+          <View style={[styles.pickerSheet, { backgroundColor: colors.card }]}>
+            <View style={[styles.pickerHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.pickerTitle, { color: colors.text }]}>
+                {language === 'ar' ? 'اختر موديل' : language === 'fr' ? 'Choisir un modèle' : 'Select Model'}
+              </Text>
+              <Pressable onPress={() => setModelPickerProvider(null)} hitSlop={8}>
+                <Ionicons name="close" size={22} color={colors.text} />
+              </Pressable>
+            </View>
+            <FlatList
+              data={PROVIDER_MODELS[modelPickerProvider || ''] || []}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => {
+                const isSelected = aiProviders.find(p => p.id === modelPickerProvider)?.model === item.id;
+                return (
+                  <Pressable
+                    style={[
+                      styles.modelItem,
+                      { borderBottomColor: colors.border },
+                      isSelected && { backgroundColor: colors.primary + '12' },
+                    ]}
+                    onPress={() => {
+                      if (modelPickerProvider) {
+                        updateAIProvider(modelPickerProvider, { model: item.id });
+                      }
+                      setModelPickerProvider(null);
+                    }}
+                  >
+                    <View style={styles.modelItemInfo}>
+                      <Text style={[styles.modelItemName, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={[styles.modelItemDesc, { color: colors.textMuted }]}>{item.desc}</Text>
+                    </View>
+                    {isSelected && (
+                      <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                    )}
+                  </Pressable>
+                );
+              }}
+            />
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -295,4 +433,30 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
   },
   testBtnText: { fontSize: FONT_SIZE.sm, fontWeight: '600' },
+  modelPickerBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.xs,
+    paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.md, borderWidth: 1,
+  },
+  modelPickerBtnText: { flex: 1, fontSize: FONT_SIZE.sm, fontWeight: '600' },
+  pickerOverlay: {
+    flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  pickerSheet: {
+    borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl,
+    maxHeight: '70%', ...SHADOW.elevated,
+  },
+  pickerHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: SPACING.lg, borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  pickerTitle: { fontSize: FONT_SIZE.lg, fontWeight: '700' },
+  modelItem: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: SPACING.md, paddingHorizontal: SPACING.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  modelItemInfo: { flex: 1 },
+  modelItemName: { fontSize: FONT_SIZE.md, fontWeight: '600' },
+  modelItemDesc: { fontSize: FONT_SIZE.xs, marginTop: 2 },
 });

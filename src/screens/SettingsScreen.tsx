@@ -14,7 +14,9 @@ import { t } from '@/i18n/strings';
 import type { VibeNote } from '@/types';
 import { generateId } from '@/utils/id';
 
-const APP_VERSION = require('../../package.json').version;
+// Pull the displayed version straight from the Expo app config (app.json),
+// so the Settings screen always matches the published app version.
+const APP_VERSION = require('../../app.json').expo.version;
 
 export default function SettingsScreen() {
   const language = useSettingsStore(s => s.language);
@@ -49,6 +51,7 @@ export default function SettingsScreen() {
 
       const promptsToImport: VibeNote[] = parsed.prompts.map((p: any) => ({
         id: p.id || generateId(),
+        kind: p.kind === 'note' || p.kind === 'context' ? p.kind : 'prompt',
         title: p.title || 'Imported Prompt',
         content: p.content || '',
         description: p.description,
@@ -56,6 +59,8 @@ export default function SettingsScreen() {
         platform: p.platform || 'chatgpt',
         tags: p.tags || [],
         variables: p.variables || [],
+        linkedIds: Array.isArray(p.linkedIds) ? p.linkedIds : [],
+        contextIds: Array.isArray(p.contextIds) ? p.contextIds : [],
         isFavorite: p.isFavorite || false,
         isPinned: p.isPinned || false,
         usageCount: p.usageCount || 0,
@@ -251,14 +256,15 @@ const styles = StyleSheet.create({
   textRTL: { textAlign: 'right' },
   card: { borderRadius: RADIUS.lg, overflow: 'hidden', ...SHADOW.card },
   themeRow: {
-    flexDirection: 'row', justifyContent: 'space-around', padding: SPACING.lg,
+    flexDirection: 'row', justifyContent: 'space-between', padding: SPACING.md, paddingHorizontal: SPACING.lg,
   },
   themeOption: {
-    alignItems: 'center', gap: SPACING.xs, padding: SPACING.sm,
+    alignItems: 'center', gap: SPACING.xs, padding: SPACING.xs,
     borderRadius: RADIUS.md, borderWidth: 2, borderColor: 'transparent',
+    flex: 1,
   },
   themeCircle: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 28, height: 28, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
   },
   themeLabel: { fontSize: FONT_SIZE.xs, fontWeight: '500' },

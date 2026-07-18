@@ -2,12 +2,15 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { generateId } from '@/utils/id';
 
 interface SeedPrompt {
+  kind?: 'prompt' | 'note' | 'context';
   title: string;
   content: string;
   description: string;
   category: string;
   platform: string;
   tags: string[];
+  /** Titles of other seed items to link as next-step prompts */
+  linkTo?: string[];
 }
 
 const SEED_PROMPTS: SeedPrompt[] = [
@@ -75,7 +78,39 @@ const SEED_PROMPTS: SeedPrompt[] = [
     platform: 'claude',
     tags: ['email', 'business', 'communication'],
   },
+  {
+    kind: 'context',
+    title: 'Brand Voice',
+    content: 'Our brand voice is friendly but professional. We write in short, clear sentences, avoid jargon, and always address the reader directly. We never overpromise, and we back claims with concrete examples.',
+    description: 'Reusable brand voice context — attach it to any chat or prompt',
+    category: 'marketing',
+    platform: 'other',
+    tags: ['brand', 'voice', 'context'],
+  },
+  {
+    kind: 'context',
+    title: 'Senior Developer Persona',
+    content: 'Act as a senior software engineer with 15 years of experience. You value simplicity, readability and testing. When reviewing or writing code you explain trade-offs briefly and give concrete examples rather than abstract advice.',
+    description: 'Persona context for technical conversations',
+    category: 'code',
+    platform: 'other',
+    tags: ['persona', 'developer', 'context'],
+  },
+  {
+    kind: 'note',
+    title: 'Prompt writing checklist',
+    content: '1. State the role ("You are…")\n2. Give context before the task\n3. Specify the output format\n4. Add constraints (length, tone, language)\n5. Use {{variables}} for anything reusable\n6. End with a quality bar ("be specific, avoid filler")',
+    description: 'Quick checklist to write better prompts',
+    category: 'writing',
+    platform: 'other',
+    tags: ['checklist', 'tips'],
+  },
 ];
+
+// After "Article Writer" runs, suggest these as next steps in chat
+const SEED_LINKS: Record<string, string[]> = {
+  'Article Writer': ['Marketing Copy Generator', 'Professional Email Template'],
+};
 
 export function seedDatabase(db: SQLiteDatabase): void {
   const result = db.getFirstSync<{ count: number }>(
@@ -85,18 +120,21 @@ export function seedDatabase(db: SQLiteDatabase): void {
   if (result && result.count > 0) return;
 
   const now = Date.now();
+  const idsByTitle: Record<string, string> = {};
   const stmt = db.prepareSync(
-    `INSERT INTO prompts (id, title, content, description, category, platform, tags, variables, is_favorite, is_pinned, usage_count, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO prompts (id, kind, title, content, description, category, platform, tags, variables, is_favorite, is_pinned, usage_count, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
 
   try {
     for (let i = 0; i < SEED_PROMPTS.length; i++) {
       const p = SEED_PROMPTS[i];
       const id = generateId();
+      idsByTitle[p.title] = id;
       const createdAt = now - (SEED_PROMPTS.length - i) * 86400000; // stagger dates
       stmt.executeSync(
         id,
+        p.kind || 'prompt',
         p.title,
         p.content,
         p.description,
@@ -113,5 +151,14 @@ export function seedDatabase(db: SQLiteDatabase): void {
     }
   } finally {
     stmt.finalizeSync();
+  }
+
+  // Wire example prompt chains so the "next step" feature is visible right away
+  for (const [source, targets] of Object.entries(SEED_LINKS)) {
+    const sourceId = idsByTitle[source];
+    const targetIds = targets.map(t => idsByTitle[t]).filter(Boolean);
+    if (sourceId && targetIds.length > 0) {
+      db.runSync('UPDATE prompts SET linked_ids = ? WHERE id = ?', [JSON.stringify(targetIds), sourceId]);
+    }
   }
 }

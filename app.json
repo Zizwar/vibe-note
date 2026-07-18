@@ -2,15 +2,10 @@
   "expo": {
     "name": "Vibe Note",
     "slug": "vibe-note",
-    "version": "1.0.0",
-    "orientation": "portrait",
+    "version": "2.0.0",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#cccccc"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vibzcode.note",
@@ -59,6 +54,14 @@
       ]
     },
     "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#cccccc"
+        }
+      ],
       "expo-sqlite",
       "expo-sharing",
       "expo-secure-store",

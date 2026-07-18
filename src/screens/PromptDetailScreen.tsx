@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Alert, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RADIUS, SPACING, FONT_SIZE, SHADOW, CATEGORIES } from '@/constants';
 import { useThemeColors } from '@/hooks/useTheme';
@@ -7,12 +7,15 @@ import PlatformBadge from '@/components/PlatformBadge';
 import VariableFiller from '@/components/VariableFiller';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { hasVariables } from '@/engine/variableParser';
+import { isAIConfigured } from '@/engine/aiService';
 import { copyToClipboard } from '@/utils/clipboard';
 import { sharePromptFile } from '@/engine/importExport';
 import { estimateTokens, formatTokenCount } from '@/utils/tokenCounter';
 import { usePromptStore } from '@/stores/promptStore';
 import { useNavigationStore } from '@/stores/navigationStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { getDatabase } from '@/database/connection';
+import * as queries from '@/database/queries';
 import { t } from '@/i18n/strings';
 import type { VibeNote } from '@/types';
 
@@ -35,15 +38,49 @@ export default function PromptDetailScreen({ promptId }: Props) {
 
   const allCategories = [...CATEGORIES, ...customCategories];
 
+  const updatePromptFields = usePromptStore(s => s.updatePrompt);
+
   const [prompt, setPrompt] = useState<VibeNote | null>(null);
   const [showFiller, setShowFiller] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  // Link picker: attach other prompts (chains) or contexts to this prompt
+  const [linkPicker, setLinkPicker] = useState<'linked' | 'context' | null>(null);
+  const [pickerItems, setPickerItems] = useState<VibeNote[]>([]);
 
   useEffect(() => {
     if (promptId) {
       setPrompt(getPromptById(promptId));
     }
   }, [promptId]);
+
+  const openLinkPicker = (mode: 'linked' | 'context') => {
+    if (!prompt) return;
+    try {
+      const db = getDatabase();
+      const all = queries.getAllPrompts(db, { kind: mode === 'linked' ? 'prompt' : 'context' });
+      setPickerItems(all.filter(p => p.id !== prompt.id));
+    } catch {
+      setPickerItems([]);
+    }
+    setLinkPicker(mode);
+  };
+
+  const toggleLinkedItem = (id: string) => {
+    if (!prompt) return;
+    const field = linkPicker === 'linked' ? 'linkedIds' : 'contextIds';
+    const current = prompt[field as 'linkedIds' | 'contextIds'];
+    const next = current.includes(id) ? current.filter(x => x !== id) : [...current, id];
+    updatePromptFields(prompt.id, { [field]: next });
+    setPrompt(prev => (prev ? { ...prev, [field]: next } : prev));
+  };
+
+  const resolveItems = (ids: string[]): VibeNote[] => {
+    try {
+      return queries.getPromptsByIds(getDatabase(), ids);
+    } catch {
+      return [];
+    }
+  };
 
   if (!prompt) {
     return (
@@ -56,6 +93,15 @@ export default function PromptDetailScreen({ promptId }: Props) {
   const catInfo = allCategories.find(c => c.value === prompt.category);
   const hasVars = hasVariables(prompt.content);
   const tokenCount = estimateTokens(prompt.content);
+  const isPromptKind = prompt.kind === 'prompt';
+  const linkedPrompts = isPromptKind ? resolveItems(prompt.linkedIds) : [];
+  const attachedContexts = isPromptKind ? resolveItems(prompt.contextIds) : [];
+
+  const kindMeta = prompt.kind === 'note'
+    ? { icon: 'reader-outline' as const, label: t('kindNote', language), color: '#F59E0B' }
+    : prompt.kind === 'context'
+      ? { icon: 'layers-outline' as const, label: t('kindContext', language), color: '#8B5CF6' }
+      : null;
 
   const handleCopy = async () => {
     await copyToClipboard(prompt.content);
@@ -127,6 +173,12 @@ export default function PromptDetailScreen({ promptId }: Props) {
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
         <View style={[styles.badgeRow, isRTL && styles.rowRTL]}>
           <PlatformBadge platform={prompt.platform} size="md" />
+          {kindMeta && (
+            <View style={[styles.catBadge, { backgroundColor: kindMeta.color + '18' }]}>
+              <Ionicons name={kindMeta.icon} size={14} color={kindMeta.color} />
+              <Text style={[styles.catText, { color: kindMeta.color }]}>{kindMeta.label}</Text>
+            </View>
+          )}
           {catInfo && (
             <View style={[styles.catBadge, { backgroundColor: catInfo.color + '18' }]}>
               <Ionicons name={catInfo.icon as any} size={14} color={catInfo.color} />
@@ -175,6 +227,72 @@ export default function PromptDetailScreen({ promptId }: Props) {
           </View>
         )}
 
+        {/* Linked prompts: composition chains ("next step" suggestions in chat) */}
+        {isPromptKind && (
+          <View style={[styles.linkCard, { backgroundColor: colors.card }]}>
+            <View style={[styles.linkHeader, isRTL && styles.rowRTL]}>
+              <View style={[styles.linkTitleRow, isRTL && styles.rowRTL]}>
+                <Ionicons name="git-branch-outline" size={16} color={colors.primary} />
+                <Text style={[styles.linkTitle, { color: colors.text }]}>{t('linkedPrompts', language)}</Text>
+              </View>
+              <Pressable onPress={() => openLinkPicker('linked')} hitSlop={8}>
+                <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+              </Pressable>
+            </View>
+            {linkedPrompts.length > 0 ? (
+              <View style={[styles.linkChips, isRTL && styles.rowRTL]}>
+                {linkedPrompts.map(lp => (
+                  <Pressable
+                    key={lp.id}
+                    style={[styles.linkChip, { backgroundColor: colors.primary + '12', borderColor: colors.primary + '30' }]}
+                    onPress={() => navigate('PromptDetail', { promptId: lp.id })}
+                  >
+                    <Ionicons name="flash-outline" size={12} color={colors.primary} />
+                    <Text style={[styles.linkChipText, { color: colors.primary }]} numberOfLines={1}>{lp.title}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : (
+              <Text style={[styles.linkEmpty, { color: colors.textMuted }, isRTL && styles.textRTL]}>
+                {t('linkedPromptsHint', language)}
+              </Text>
+            )}
+          </View>
+        )}
+
+        {/* Attached contexts: injected as system context when run in chat */}
+        {isPromptKind && (
+          <View style={[styles.linkCard, { backgroundColor: colors.card }]}>
+            <View style={[styles.linkHeader, isRTL && styles.rowRTL]}>
+              <View style={[styles.linkTitleRow, isRTL && styles.rowRTL]}>
+                <Ionicons name="layers-outline" size={16} color={colors.primary} />
+                <Text style={[styles.linkTitle, { color: colors.text }]}>{t('contexts', language)}</Text>
+              </View>
+              <Pressable onPress={() => openLinkPicker('context')} hitSlop={8}>
+                <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+              </Pressable>
+            </View>
+            {attachedContexts.length > 0 ? (
+              <View style={[styles.linkChips, isRTL && styles.rowRTL]}>
+                {attachedContexts.map(ctx => (
+                  <Pressable
+                    key={ctx.id}
+                    style={[styles.linkChip, { backgroundColor: '#8B5CF618', borderColor: '#8B5CF640' }]}
+                    onPress={() => navigate('PromptDetail', { promptId: ctx.id })}
+                  >
+                    <Ionicons name="layers" size={12} color="#8B5CF6" />
+                    <Text style={[styles.linkChipText, { color: '#8B5CF6' }]} numberOfLines={1}>{ctx.title}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : (
+              <Text style={[styles.linkEmpty, { color: colors.textMuted }, isRTL && styles.textRTL]}>
+                {t('contextsHint', language)}
+              </Text>
+            )}
+          </View>
+        )}
+
         <View style={[styles.statsCard, { backgroundColor: colors.card }]}>
           <View style={[styles.statRow, { borderBottomColor: colors.border }]}>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('usageCount', language)}</Text>
@@ -210,6 +328,16 @@ export default function PromptDetailScreen({ promptId }: Props) {
           />
         </Pressable>
 
+        {isAIConfigured() && (
+          <Pressable
+            style={[styles.favBtn, { backgroundColor: colors.background }]}
+            onPress={() => navigate('AIAssistant', { seedPrompt: prompt.content, seedPromptId: prompt.id, seedNonce: String(Date.now()) })}
+            accessibilityLabel={t('chatWithAI', language)}
+          >
+            <Ionicons name="chatbubbles-outline" size={24} color={colors.primary} />
+          </Pressable>
+        )}
+
         {hasVars ? (
           <Pressable style={[styles.mainAction, { backgroundColor: colors.primary }]} onPress={() => setShowFiller(true)}>
             <Ionicons name="play" size={18} color="#fff" />
@@ -238,6 +366,56 @@ export default function PromptDetailScreen({ promptId }: Props) {
         onConfirm={handleDelete}
         onCancel={() => setShowDelete(false)}
       />
+
+      {/* Picker for linking prompts / attaching contexts */}
+      <Modal visible={linkPicker !== null} transparent animationType="slide" onRequestClose={() => setLinkPicker(null)}>
+        <Pressable style={[styles.pickerOverlay, { backgroundColor: colors.overlay }]} onPress={() => setLinkPicker(null)}>
+          <Pressable style={[styles.pickerSheet, { backgroundColor: colors.card }]} onPress={() => {}}>
+            <View style={[styles.pickerHeader, isRTL && styles.headerRTL]}>
+              <Text style={[styles.pickerTitle, { color: colors.text }]}>
+                {linkPicker === 'linked' ? t('linkPrompt', language) : t('attachContexts', language)}
+              </Text>
+              <Pressable onPress={() => setLinkPicker(null)} hitSlop={8}>
+                <Ionicons name="close" size={22} color={colors.text} />
+              </Pressable>
+            </View>
+            <FlatList
+              data={pickerItems}
+              keyExtractor={item => item.id}
+              style={{ maxHeight: 380 }}
+              ListEmptyComponent={
+                <Text style={[styles.pickerEmpty, { color: colors.textMuted }]}>
+                  {linkPicker === 'linked' ? t('noPrompts', language) : t('noContexts', language)}
+                </Text>
+              }
+              renderItem={({ item }) => {
+                const field = linkPicker === 'linked' ? prompt.linkedIds : prompt.contextIds;
+                const selected = field.includes(item.id);
+                return (
+                  <Pressable
+                    style={[styles.pickerItem, { borderBottomColor: colors.border }]}
+                    onPress={() => toggleLinkedItem(item.id)}
+                  >
+                    <View style={[styles.pickerItemRow, isRTL && styles.headerRTL]}>
+                      <Text style={[styles.pickerItemTitle, { color: colors.text }, isRTL && styles.textRTL]} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      <Ionicons
+                        name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={20}
+                        color={selected ? colors.primary : colors.textMuted}
+                      />
+                    </View>
+                    <Text style={[styles.pickerItemPreview, { color: colors.textMuted }, isRTL && styles.textRTL]} numberOfLines={2}>
+                      {item.content}
+                    </Text>
+                  </Pressable>
+                );
+              }}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -279,6 +457,36 @@ const styles = StyleSheet.create({
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginBottom: SPACING.lg },
   tag: { paddingHorizontal: SPACING.sm, paddingVertical: 4, borderRadius: RADIUS.full },
   tagText: { fontSize: FONT_SIZE.sm, fontWeight: '500' },
+  linkCard: { borderRadius: RADIUS.lg, padding: SPACING.lg, marginBottom: SPACING.lg, ...SHADOW.card },
+  linkHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: SPACING.sm,
+  },
+  linkTitleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
+  linkTitle: { fontSize: FONT_SIZE.md, fontWeight: '700' },
+  linkChips: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
+  linkChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.full, borderWidth: 1, maxWidth: 220,
+  },
+  linkChipText: { fontSize: FONT_SIZE.xs, fontWeight: '600', flexShrink: 1 },
+  linkEmpty: { fontSize: FONT_SIZE.xs, lineHeight: 18 },
+  pickerOverlay: { flex: 1, justifyContent: 'flex-end' },
+  pickerSheet: {
+    borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl,
+    paddingBottom: SPACING.xl, maxHeight: '75%',
+  },
+  pickerHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: SPACING.lg,
+  },
+  pickerTitle: { fontSize: FONT_SIZE.lg, fontWeight: '700' },
+  pickerItem: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, borderBottomWidth: StyleSheet.hairlineWidth },
+  pickerItemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.sm },
+  pickerItemTitle: { fontSize: FONT_SIZE.md, fontWeight: '600', flex: 1 },
+  pickerItemPreview: { fontSize: FONT_SIZE.xs, lineHeight: 18, marginTop: 2 },
+  pickerEmpty: { textAlign: 'center', paddingVertical: SPACING.xl, fontSize: FONT_SIZE.sm },
   statsCard: { borderRadius: RADIUS.lg, padding: SPACING.lg, ...SHADOW.card },
   statRow: {
     flexDirection: 'row', justifyContent: 'space-between',

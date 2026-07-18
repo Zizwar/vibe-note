@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { VibeNote, PromptCategory, AIPlatform } from '@/types';
+import type { VibeNote, PromptCategory, AIPlatform, ItemKind } from '@/types';
 import { getDatabase } from '@/database/connection';
 import * as queries from '@/database/queries';
 import { extractVariables } from '@/engine/variableParser';
@@ -9,17 +9,21 @@ interface PromptState {
   prompts: VibeNote[];
   isLoading: boolean;
   searchQuery: string;
+  activeKind: ItemKind | null;
   activeCategory: PromptCategory | null;
   activePlatform: AIPlatform | null;
 
   loadPrompts: () => void;
   addPrompt: (data: {
+    kind?: ItemKind;
     title: string;
     content: string;
     description?: string;
     category: PromptCategory;
     platform: AIPlatform;
     tags: string[];
+    linkedIds?: string[];
+    contextIds?: string[];
   }) => string;
   updatePrompt: (id: string, data: Partial<VibeNote>) => void;
   deletePrompt: (id: string) => void;
@@ -27,6 +31,7 @@ interface PromptState {
   togglePin: (id: string) => void;
   incrementUsage: (id: string) => void;
   setSearchQuery: (q: string) => void;
+  setActiveKind: (k: ItemKind | null) => void;
   setActiveCategory: (c: PromptCategory | null) => void;
   setActivePlatform: (p: AIPlatform | null) => void;
   getPromptById: (id: string) => VibeNote | null;
@@ -36,6 +41,7 @@ export const usePromptStore = create<PromptState>((set, get) => ({
   prompts: [],
   isLoading: false,
   searchQuery: '',
+  activeKind: null,
   activeCategory: null,
   activePlatform: null,
 
@@ -43,8 +49,9 @@ export const usePromptStore = create<PromptState>((set, get) => ({
     set({ isLoading: true });
     try {
       const db = getDatabase();
-      const { searchQuery, activeCategory, activePlatform } = get();
+      const { searchQuery, activeKind, activeCategory, activePlatform } = get();
       const prompts = queries.getAllPrompts(db, {
+        kind: activeKind,
         category: activeCategory,
         platform: activePlatform,
         search: searchQuery || undefined,
@@ -63,6 +70,7 @@ export const usePromptStore = create<PromptState>((set, get) => ({
     const variables = extractVariables(data.content);
     const prompt: Omit<VibeNote, 'usageCount' | 'lastUsedAt'> = {
       id,
+      kind: data.kind || 'prompt',
       title: data.title,
       content: data.content,
       description: data.description,
@@ -70,6 +78,8 @@ export const usePromptStore = create<PromptState>((set, get) => ({
       platform: data.platform,
       tags: data.tags,
       variables,
+      linkedIds: data.linkedIds || [],
+      contextIds: data.contextIds || [],
       isFavorite: false,
       isPinned: false,
       createdAt: now,
@@ -115,6 +125,11 @@ export const usePromptStore = create<PromptState>((set, get) => ({
 
   setSearchQuery: (q) => {
     set({ searchQuery: q });
+    get().loadPrompts();
+  },
+
+  setActiveKind: (k) => {
+    set({ activeKind: k });
     get().loadPrompts();
   },
 

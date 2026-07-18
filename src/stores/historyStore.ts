@@ -20,18 +20,6 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 }
 
-export function initHistoryTable(db: any) {
-  db.execSync(`
-    CREATE TABLE IF NOT EXISTS usage_history (
-      id TEXT PRIMARY KEY,
-      prompt_id TEXT NOT NULL,
-      prompt_title TEXT NOT NULL,
-      values_json TEXT DEFAULT '{}',
-      timestamp INTEGER NOT NULL
-    );
-  `);
-}
-
 export const useHistoryStore = create<HistoryState>((set, get) => ({
   history: [],
 

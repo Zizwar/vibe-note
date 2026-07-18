@@ -11,6 +11,10 @@ export interface AIProviderConfig {
   baseUrl?: string;
   model?: string;
   isActive: boolean;
+  /** Wire protocol; when omitted it is detected from id/baseUrl (see getProviderApi) */
+  api?: 'gemini' | 'anthropic' | 'openai';
+  /** false for local providers (e.g. Ollama) that work without an API key */
+  requiresKey?: boolean;
 }
 
 interface SettingsState {
@@ -64,7 +68,7 @@ const DEFAULT_AI_PROVIDERS: AIProviderConfig[] = [
     name: 'OpenRouter',
     apiKey: '',
     baseUrl: 'https://openrouter.ai/api/v1',
-    model: 'openai/gpt-4o-mini',
+    model: 'google/gemini-3.5-flash',
     isActive: false,
   },
   {
@@ -72,8 +76,27 @@ const DEFAULT_AI_PROVIDERS: AIProviderConfig[] = [
     name: 'OpenAI',
     apiKey: '',
     baseUrl: 'https://api.openai.com/v1',
-    model: 'gpt-4o-mini',
+    model: 'gpt-5.4-mini',
     isActive: false,
+  },
+  {
+    id: 'anthropic',
+    name: 'Anthropic Claude',
+    apiKey: '',
+    baseUrl: 'https://api.anthropic.com/v1',
+    model: 'claude-sonnet-4-6',
+    isActive: false,
+    api: 'anthropic',
+  },
+  {
+    id: 'ollama',
+    name: 'Ollama (Local)',
+    apiKey: '',
+    baseUrl: 'http://localhost:11434/v1',
+    model: 'llama3.2',
+    isActive: false,
+    api: 'openai',
+    requiresKey: false,
   },
 ];
 
@@ -123,7 +146,14 @@ export async function loadSettingsFromStorage() {
 
     const providersJson = await SecureStore.getItemAsync(AI_PROVIDERS_KEY);
     if (providersJson) {
-      const providers = JSON.parse(providersJson);
+      const providers: AIProviderConfig[] = JSON.parse(providersJson);
+      // Merge in defaults added after the user's providers were first persisted
+      // (e.g. Anthropic and Ollama introduced in v2)
+      for (const def of DEFAULT_AI_PROVIDERS) {
+        if (!providers.some(p => p.id === def.id)) {
+          providers.push({ ...def });
+        }
+      }
       useSettingsStore.setState({ aiProviders: providers });
     }
 
