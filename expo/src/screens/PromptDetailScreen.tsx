@@ -10,6 +10,8 @@ import { hasVariables } from '@/engine/variableParser';
 import { isAIConfigured } from '@/engine/aiService';
 import { copyToClipboard } from '@/utils/clipboard';
 import { sharePromptFile } from '@/engine/importExport';
+import { publishPromptToWeb } from '@/services/backendService';
+import * as Sharing from 'expo-sharing';
 import { estimateTokens, formatTokenCount } from '@/utils/tokenCounter';
 import { usePromptStore } from '@/stores/promptStore';
 import { useNavigationStore } from '@/stores/navigationStore';
@@ -43,6 +45,9 @@ export default function PromptDetailScreen({ promptId }: Props) {
   const [prompt, setPrompt] = useState<VibeNote | null>(null);
   const [showFiller, setShowFiller] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   // Link picker: attach other prompts (chains) or contexts to this prompt
   const [linkPicker, setLinkPicker] = useState<'linked' | 'context' | null>(null);
   const [pickerItems, setPickerItems] = useState<VibeNote[]>([]);
@@ -113,8 +118,27 @@ export default function PromptDetailScreen({ promptId }: Props) {
     goBack();
   };
 
-  const handleShare = async () => {
-    await sharePromptFile(prompt, false);
+  const handleShare = () => {
+    setShowShareModal(true);
+  };
+
+  const handlePublishToWeb = async (isPublic: boolean) => {
+    if (!prompt) return;
+    setIsPublishing(true);
+    try {
+      const serverUrl = useSettingsStore.getState().backendServerUrl || 'http://localhost:8000';
+      const result = await publishPromptToWeb(prompt, isPublic, serverUrl);
+      setPublishedUrl(result.shortUrl);
+      await copyToClipboard(result.shortUrl);
+      Alert.alert(
+        isPublic ? 'Published Publicly' : 'Link Created (Private)',
+        `Short Link: ${result.shortUrl}\n\nLink copied to clipboard!`
+      );
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to connect to server');
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   const formatDate = (ts: number) => new Date(ts).toLocaleDateString();
@@ -416,6 +440,76 @@ export default function PromptDetailScreen({ promptId }: Props) {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Share & Publish Modal */}
+      <Modal visible={showShareModal} transparent animationType="slide" onRequestClose={() => setShowShareModal(false)}>
+        <Pressable style={[styles.pickerOverlay, { backgroundColor: colors.overlay }]} onPress={() => setShowShareModal(false)}>
+          <Pressable style={[styles.pickerSheet, { backgroundColor: colors.card, paddingHorizontal: SPACING.lg, paddingTop: SPACING.lg }]} onPress={() => {}}>
+            <View style={[styles.pickerHeader, isRTL && styles.headerRTL, { paddingHorizontal: 0 }]}>
+              <Text style={[styles.pickerTitle, { color: colors.text }]}>Share & Publish Prompt</Text>
+              <Pressable onPress={() => setShowShareModal(false)} hitSlop={8}>
+                <Ionicons name="close" size={22} color={colors.text} />
+              </Pressable>
+            </View>
+
+            <Text style={{ color: colors.textSecondary, marginBottom: SPACING.lg, fontSize: FONT_SIZE.sm }}>
+              Choose how you want to share this prompt with others or publish to the web bank:
+            </Text>
+
+            <Pressable
+              style={[styles.shareOptionCard, { backgroundColor: colors.background, borderColor: colors.border }]}
+              onPress={() => {
+                setShowShareModal(false);
+                handlePublishToWeb(true);
+              }}
+              disabled={isPublishing}
+            >
+              <Ionicons name="globe-outline" size={24} color={colors.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.shareOptionTitle, { color: colors.text }]}>Publish Publicly (Web Showcase)</Text>
+                <Text style={[styles.shareOptionDesc, { color: colors.textMuted }]}>
+                  Appears in the VibeNote web prompt bank for anyone to discover & use.
+                </Text>
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={[styles.shareOptionCard, { backgroundColor: colors.background, borderColor: colors.border }]}
+              onPress={() => {
+                setShowShareModal(false);
+                handlePublishToWeb(false);
+              }}
+              disabled={isPublishing}
+            >
+              <Ionicons name="lock-closed-outline" size={24} color="#06B6D4" />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.shareOptionTitle, { color: colors.text }]}>Share Privately (Short Link)</Text>
+                <Text style={[styles.shareOptionDesc, { color: colors.textMuted }]}>
+                  Unlisted short link. Only people with the link can view or open it.
+                </Text>
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={[styles.shareOptionCard, { backgroundColor: colors.background, borderColor: colors.border }]}
+              onPress={async () => {
+                setShowShareModal(false);
+                await sharePromptFile(prompt, false);
+              }}
+            >
+              <Ionicons name="document-text-outline" size={24} color="#F59E0B" />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.shareOptionTitle, { color: colors.text }]}>Export .vibe File</Text>
+                <Text style={[styles.shareOptionDesc, { color: colors.textMuted }]}>
+                  Export JSON backup file for offline sharing or direct app import.
+                </Text>
+              </View>
+            </Pressable>
+
+            <View style={{ height: SPACING.xl }} />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -507,4 +601,10 @@ const styles = StyleSheet.create({
     gap: SPACING.sm, paddingVertical: SPACING.md, borderRadius: RADIUS.md,
   },
   mainActionText: { fontSize: FONT_SIZE.lg, fontWeight: '700', color: '#fff' },
+  shareOptionCard: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.md,
+    padding: SPACING.lg, borderRadius: RADIUS.lg, borderWidth: 1, marginBottom: SPACING.md,
+  },
+  shareOptionTitle: { fontSize: FONT_SIZE.md, fontWeight: '700', marginBottom: 2 },
+  shareOptionDesc: { fontSize: FONT_SIZE.xs, lineHeight: 16 },
 });

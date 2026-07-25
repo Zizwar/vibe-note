@@ -7,6 +7,7 @@ import CategoryFilter from '@/components/CategoryFilter';
 import PromptCard from '@/components/PromptCard';
 import FAB from '@/components/FAB';
 import VariableFiller from '@/components/VariableFiller';
+import ImportCodeModal from '@/components/ImportCodeModal';
 import { usePromptStore } from '@/stores/promptStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { t } from '@/i18n/strings';
@@ -29,6 +30,7 @@ export default function HomeScreen() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [sortMode, setSortMode] = useState<SortMode>('newest');
   const [showFilter, setShowFilter] = useState(false);
+  const [showImportCode, setShowImportCode] = useState(false);
   const [searchText, setSearchText] = useState('');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const colors = useThemeColors();
@@ -163,6 +165,16 @@ export default function HomeScreen() {
           </Pressable>
 
           <Pressable
+            style={[styles.sortBtn, { borderColor: colors.primary, backgroundColor: colors.primary + '15' }]}
+            onPress={() => setShowImportCode(true)}
+          >
+            <Ionicons name="cloud-download-outline" size={14} color={colors.primary} />
+            <Text style={[styles.sortText, { color: colors.primary, fontWeight: '700' }]}>
+              {language === 'ar' ? 'رمز / رابط' : 'Import Code'}
+            </Text>
+          </Pressable>
+
+          <Pressable
             style={[styles.filterBtn, showFilter && { backgroundColor: colors.primary + '20' }]}
             onPress={() => setShowFilter(!showFilter)}
           >
@@ -222,6 +234,10 @@ export default function HomeScreen() {
         prompt={fillerPrompt}
         visible={fillerPrompt !== null}
         onClose={() => setFillerPrompt(null)}
+      />
+      <ImportCodeModal
+        visible={showImportCode}
+        onClose={() => setShowImportCode(false)}
       />
     </View>
   );

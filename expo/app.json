@@ -1,0 +1,99 @@
+{
+  "expo": {
+    "name": "Vibe Note",
+    "slug": "vibe-note",
+    "scheme": "vibenote",
+    "version": "2.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vibzcode.note",
+      "infoPlist": {
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "Vibe Note Prompt File",
+            "CFBundleTypeRole": "Editor",
+            "LSHandlerRank": "Owner",
+            "LSItemContentTypes": [
+              "com.vibzcode.note.vibe",
+              "public.json",
+              "public.text",
+              "public.data"
+            ]
+          }
+        ],
+        "UTExportedTypeDeclarations": [
+          {
+            "UTTypeIdentifier": "com.vibzcode.note.vibe",
+            "UTTypeDescription": "Vibe Note Prompt File",
+            "UTTypeConformsTo": [
+              "public.data",
+              "public.json"
+            ],
+            "UTTypeTagSpecification": {
+              "public.filename-extension": [
+                "vibe",
+                "vibe.json",
+                "json"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#046f98"
+      },
+      "package": "com.vibzcode.note",
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "file", "mimeType": "application/json" },
+            { "scheme": "content", "mimeType": "application/json" },
+            { "scheme": "file", "mimeType": "text/plain" },
+            { "scheme": "content", "mimeType": "text/plain" },
+            { "scheme": "file", "mimeType": "application/octet-stream" },
+            { "scheme": "content", "mimeType": "application/octet-stream" },
+            { "scheme": "file", "pathPattern": ".*\\.vibe" },
+            { "scheme": "content", "pathPattern": ".*\\.vibe" },
+            { "scheme": "file", "pathPattern": ".*\\.vibe\\.json" },
+            { "scheme": "content", "pathPattern": ".*\\.vibe\\.json" },
+            { "scheme": "file", "pathPattern": ".*\\.json" },
+            { "scheme": "content", "pathPattern": ".*\\.json" }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#cccccc"
+        }
+      ],
+      "expo-sqlite",
+      "expo-sharing",
+      "expo-secure-store",
+      "expo-document-picker"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e93c3ac1-e755-4263-bb53-668e76c1c615"
+      }
+    }
+  }
+}

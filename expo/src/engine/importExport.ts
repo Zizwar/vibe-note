@@ -47,9 +47,14 @@ export function exportPromptToVibe(prompt: VibeNote): string {
 export function parseImportJson(jsonString: string): { type: 'backup' | 'prompt'; prompts: Partial<VibeNote>[] } {
   const data = JSON.parse(jsonString);
 
-  // Single prompt format (.vibe)
+  // Single prompt format (.vibe / .vibe.json)
   if (data.type === 'prompt' && data.prompt) {
     return { type: 'prompt', prompts: [data.prompt] };
+  }
+
+  // Raw single prompt object (e.g. { title: "...", content: "..." })
+  if (data.content || data.title) {
+    return { type: 'prompt', prompts: [data] };
   }
 
   // Backup format
@@ -62,7 +67,6 @@ export function parseImportJson(jsonString: string): { type: 'backup' | 'prompt'
     return { type: 'backup', prompts: data };
   }
 
-  // Plain text or unknown format - treat as single prompt content
   throw new Error('Invalid import format');
 }
 

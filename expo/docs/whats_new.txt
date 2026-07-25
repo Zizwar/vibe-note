@@ -1,0 +1,10 @@
+Google Play Store "What's New" Release Notes (Under 500 characters):
+------------------------------------------------------------------
+What's New in Vibe Note 2.0.0:
+
+• Upgraded app framework to Expo 56 and React Native 0.85.3 for improved stability.
+• Added "Chat with AI" to execute customized prompts directly in the AI Assistant.
+• Enhanced RTL/Arabic text input alignment, multi-line wrapping, and layout rendering.
+• UI adjustments, settings optimization, and minor bug fixes.
+------------------------------------------------------------------
+Character count: 395 (Limit is 500)

@@ -39,16 +39,52 @@ export default function App() {
 
   const handleOpenFileUrl = async (url: string) => {
     try {
-      let content: string;
-      if (url.startsWith('file://')) {
-        const file = new File(url);
-        content = await file.text();
-      } else {
-        // content:// (and other) URIs on Android: the new File API only accepts
-        // file:// schemes, so read these through the legacy API, which resolves
-        // content URIs via the Android ContentResolver.
-        content = await LegacyFileSystem.readAsStringAsync(url);
+      if (!url) return;
+
+      // Ignore Expo Go development server URLs (exp:// or exps://)
+      if (url.startsWith('exp://') || url.startsWith('exps://')) {
+        return;
       }
+
+      let content: string = '';
+
+      if (url.startsWith('vibenote://') || url.startsWith('http://') || url.startsWith('https://')) {
+        // Deep link handling (e.g. vibenote://prompt/vibe101?data=... or https://test.10rg.com/p/vibe101)
+        const cleanUrl = url.startsWith('vibenote://') ? url.replace('vibenote://', 'http://dummy.app/') : url;
+        try {
+          const urlObj = new URL(cleanUrl);
+          const dataParam = urlObj.searchParams.get('data');
+          const pathSegments = urlObj.pathname.split('/').filter(Boolean);
+          const shortId = urlObj.pathname.includes('/p/') ? pathSegments[pathSegments.indexOf('p') + 1] : (pathSegments[1] || pathSegments[0]);
+
+          if (dataParam) {
+            content = decodeURIComponent(dataParam);
+          } else if (shortId) {
+            // Fetch from server backend
+            const serverUrl = useSettingsStore.getState().backendServerUrl || 'https://test.10rg.com';
+            const res = await fetch(`${serverUrl.replace(/\/$/, '')}/api/prompts/${shortId}`);
+            if (res.ok) {
+              const remoteData = await res.json();
+              content = JSON.stringify({ type: 'prompt', prompt: remoteData });
+            }
+          }
+        } catch {}
+      } else if (url.startsWith('file://')) {
+        try {
+          const file = new File(url);
+          content = await file.text();
+        } catch {
+          content = await LegacyFileSystem.readAsStringAsync(url);
+        }
+      } else if (url.startsWith('content://')) {
+        // content:// URIs on Android
+        try {
+          content = await LegacyFileSystem.readAsStringAsync(url);
+        } catch {}
+      }
+
+      if (!content) return;
+
       const parsed = parseImportJson(content);
       const db = getDatabase();
       const promptsToImport: VibeNote[] = parsed.prompts.map((p: any) => ({
@@ -72,12 +108,18 @@ export default function App() {
       }));
       const count = importPrompts(db, promptsToImport, 'merge');
       loadPrompts();
+
+      if (promptsToImport.length > 0) {
+        const imported = promptsToImport[0];
+        useNavigationStore.getState().navigate('PromptDetail', { promptId: imported.id });
+      }
+
       Alert.alert(
-        language === 'ar' ? 'تم الاستيراد' : 'Imported',
-        `${count} ${language === 'ar' ? 'برومبت تم استيراده' : 'prompt(s) imported'}`
+        language === 'ar' ? 'تم الاستيراد' : 'Prompt Imported',
+        `${count} ${language === 'ar' ? 'برومبت تم استيراده وتخزينه في التطبيق' : 'prompt(s) saved to your app'}`
       );
     } catch (e) {
-      console.error('File open error:', e);
+      console.error('File/Link open error:', e);
     }
   };
 

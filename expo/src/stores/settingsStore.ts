@@ -27,6 +27,10 @@ interface SettingsState {
   customCategories: CategoryItem[];
   customPlatforms: PlatformItem[];
 
+  // Deno Backend Server URL
+  backendServerUrl: string;
+  setBackendServerUrl: (url: string) => void;
+
   // AI provider settings
   aiProviders: AIProviderConfig[];
   activeAIProvider: string | null;
@@ -173,6 +177,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   colorTheme: 'light' as ColorTheme,
   customCategories: [],
   customPlatforms: [],
+  backendServerUrl: 'https://test.10rg.com',
+  setBackendServerUrl: (url) => set({ backendServerUrl: url }),
   aiProviders: DEFAULT_AI_PROVIDERS,
   activeAIProvider: null,
 

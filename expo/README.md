@@ -13,7 +13,7 @@ Managing prompts is tedious. They end up scattered across browser tabs, notes ap
 - **Search instantly** across titles, content, and tags with SQLite FTS5 relevance-ranked full-text search
 - **Use AI** to import raw text and auto-organize it, generate new prompts from a description, or improve existing ones
 - **Track usage** — see how often each prompt is used and recall what values you filled last time
-- **Export and import** your full library as `.vibe` files for backup or sharing
+- **Export and import** your full library as `.vibe` files for backup or sharing (see the [Google Drive Backup Guide (Arabic)](file:///root/vibe-note/docs/google-drive-backup.md) for step-by-step instructions on how to backup using Google Drive)
 
 ## Features
 
