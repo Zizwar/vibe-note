@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vibe Note — Smart AI Prompt Bank & Mobile App</title>
+  <meta name="description" content="Vibe Note is the smart prompt manager & web showcase for AI tools. Save, organize, and use prompts with dynamic variables, public web bank, short links, and deep link sync.">
+  <meta name="theme-color" content="#8B5CF6">
+
+  <!-- OpenGraph SEO -->
+  <meta property="og:title" content="Vibe Note — Smart AI Prompt Bank & Mobile App">
+  <meta property="og:description" content="Discover, test live, and sync curated AI prompts with dynamic variables between web and mobile.">
+  <meta property="og:type" content="website">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #0A0D14;
+      --bg-card: #121824;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --accent-primary: #8B5CF6;
+      --accent-cyan: #06B6D4;
+      --text-main: #F3F4F6;
+      --text-muted: #9CA3AF;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; line-height: 1.6; }
+    h1, h2, h3, .brand-name { font-family: 'Outfit', sans-serif; }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+    .text-center { text-align: center; }
+
+    /* Hero */
+    .hero {
+      padding: 90px 20px 70px; text-align: center;
+      background: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.15), transparent 70%);
+      border-bottom: 1px solid var(--border-color);
+    }
+    .hero-badge {
+      display: inline-block; padding: 0.35rem 1.1rem; border-radius: 30px;
+      background: rgba(139, 92, 246, 0.15); color: #A78BFA; border: 1px solid rgba(139, 92, 246, 0.3);
+      font-size: 0.85rem; font-weight: 600; margin-bottom: 1.5rem;
+    }
+    .hero h1 { font-size: 3.2rem; font-weight: 800; line-height: 1.2; margin-bottom: 1rem; }
+    .hero p { font-size: 1.2rem; color: var(--text-muted); max-width: 680px; margin: 0 auto 2.5rem; }
+
+    .badges { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px;
+      border-radius: 12px; font-weight: 700; font-size: 0.95rem; text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .badge:hover { transform: translateY(-2px); }
+    .badge-primary { background: var(--accent-primary); color: white; box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
+    .badge-secondary { background: rgba(255,255,255,0.06); color: #fff; border: 1px solid var(--border-color); }
+
+    /* Features Grid */
+    .features { padding: 80px 20px; }
+    .features h2 { text-align: center; font-size: 2.2rem; margin-bottom: 50px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+    .card {
+      background: var(--bg-card); border-radius: var(--radius); padding: 32px;
+      border: 1px solid var(--border-color); transition: border-color 0.2s, transform 0.2s;
+    }
+    .card:hover { border-color: rgba(139, 92, 246, 0.4); transform: translateY(-3px); }
+    .card .icon { font-size: 2.2rem; margin-bottom: 16px; display: block; }
+    .card h3 { font-size: 1.25rem; margin-bottom: 10px; color: #fff; }
+    .card p { font-size: 0.95rem; color: var(--text-muted); line-height: 1.6; }
+
+    /* Protocol & Link Demo Section */
+    .demo-section {
+      background: rgba(255,255,255,0.02); border: 1px solid var(--border-color);
+      border-radius: 20px; padding: 40px; margin: 40px auto 80px; max-width: 900px; text-align: center;
+    }
+    .demo-section code {
+      background: rgba(139, 92, 246, 0.15); color: #A78BFA;
+      padding: 4px 10px; border-radius: 6px; font-family: monospace; font-size: 0.95rem;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 0.9rem;
+      border-top: 1px solid var(--border-color);
+    }
+    footer a { color: var(--accent-cyan); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    .footer-links { display: flex; gap: 20px; justify-content: center; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">✨ Vibe Note 2.0 & Web Prompt Bank</div>
+      <h1>
+        Master Your Prompts.<br>
+        <span class="gradient-text">Fill Variables & Sync Anywhere.</span>
+      </h1>
+      <p>Save, organize, and test AI prompts with dynamic variables. Share prompts via short links, explore the public web showcase, and sync seamlessly with the Vibe Note app.</p>
+      
+      <div class="badges">
+        <a class="badge badge-primary" href="https://test.10rg.com" target="_blank">
+          🌐 Open Web Prompt Showcase
+        </a>
+        <a class="badge badge-secondary" href="https://play.google.com/store/apps/details?id=com.vibzcode.note" target="_blank">
+          📱 Google Play Store
+        </a>
+        <a class="badge badge-secondary" href="https://github.com/Zizwar/vibe-note" target="_blank">
+          💻 GitHub Repository
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="container features">
+    <h2>Powerful AI Prompt Management</h2>
+    <div class="grid">
+      <div class="card">
+        <span class="icon">🎛️</span>
+        <h3>Smart Dynamic Variables</h3>
+        <p>Use <code>{{variable}}</code>, <code>{{name|default}}</code>, and <code>{{name:opt1|opt2}}</code>. Test inputs with real-time preview before running in ChatGPT, Claude, or Gemini.</p>
+      </div>
+
+      <div class="card">
+        <span class="icon">🔗</span>
+        <h3>Short Links & Public Showcase</h3>
+        <p>Publish prompts to the web prompt bank (or share unlisted short links like <code>test.10rg.com/p/PTZt0p</code>). Share publicly or keep links private.</p>
+      </div>
+
+      <div class="card">
+        <span class="icon">📱</span>
+        <h3>Deep Link App Sync</h3>
+        <p>Click "Save in App" on the website to open the Vibe Note mobile application via <code>vibenote://</code> custom scheme and import prompts automatically.</p>
+      </div>
+
+      <div class="card">
+        <span class="icon">📥</span>
+        <h3>Import via Code or File</h3>
+        <p>Enter any short code (e.g. <code>PTZt0p</code>) or link directly in the app, or import <code>.vibe</code>, <code>.vibe.json</code>, and <code>.json</code> prompt files.</p>
+      </div>
+
+      <div class="card">
+        <span class="icon">⚡</span>
+        <h3>Powered by Deno & MongoDB</h3>
+        <p>Fast, serverless backend hostable on Deno Deploy with MongoDB Atlas storage and resilient fallback database support.</p>
+      </div>
+
+      <div class="card">
+        <span class="icon">🌐</span>
+        <h3>Multi-Language & Dark Mode</h3>
+        <p>Full English and Arabic (RTL) support, sleek obsidian dark mode UI, category tags, and usage analytics tracking.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="container">
+    <div class="demo-section">
+      <h3>🚀 Quick Import & App Protocol</h3>
+      <p style="margin-top: 10px;">Supported Deep Link Scheme: <code>vibenote://prompt/:shortId</code></p>
+      <p style="margin-top: 8px; color: var(--text-muted);">Open any prompt on the web and click "Save in App" to import it directly into your local database.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-links">
+      <a href="privacy.html">Privacy Policy</a>
+      <span>•</span>
+      <a href="terms.html">Terms of Service</a>
+      <span>•</span>
+      <a href="https://github.com/Zizwar/vibe-note">GitHub</a>
+    </div>
+    <p>&copy; 2024-2026 Brahim Bidi / Vibe Note. All rights reserved.</p>
+  </footer>
+</body>
+</html>
