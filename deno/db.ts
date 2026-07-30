@@ -194,12 +194,14 @@ export interface PaginatedPrompts {
 export async function getPublicPrompts(options?: {
   category?: string;
   search?: string;
+  tag?: string;
   limit?: number;
   page?: number;
   sort?: string;
 }): Promise<PaginatedPrompts> {
   const category = options?.category;
   const search = options?.search?.toLowerCase();
+  const tag = options?.tag?.toLowerCase();
 
   // Strict limit capping: max 50 per fetch
   const requestedLimit = Number(options?.limit) || 24;
@@ -208,13 +210,16 @@ export async function getPublicPrompts(options?: {
   const skip = (page - 1) * limit;
 
   // Determine if we should show a diverse magazine random mix
-  const isRandomView = options?.sort === 'random' || !options?.sort;
+  const isRandomView = (options?.sort === 'random' || !options?.sort) && !tag && !search && (!category || category === 'all');
 
   if (!useFallbackDb && mongoCollection) {
     try {
       const query: any = { isPublic: true };
       if (category && category !== 'all') {
         query.category = category;
+      }
+      if (tag) {
+        query.tags = { $regex: tag, $options: 'i' };
       }
       if (search) {
         query.$or = [
@@ -269,6 +274,9 @@ export async function getPublicPrompts(options?: {
     list = list.filter(p => p.isPublic !== false);
     if (category && category !== 'all') {
       list = list.filter(p => p.category === category);
+    }
+    if (tag) {
+      list = list.filter(p => p.tags.some(t => t.toLowerCase() === tag || t.toLowerCase().includes(tag)));
     }
     if (search) {
       list = list.filter(p =>

@@ -4,7 +4,8 @@ export function renderHomePage(
   data: PaginatedPrompts,
   selectedCategory = "all",
   searchQuery = "",
-  baseUrl = "https://test.10rg.com"
+  selectedTag = "",
+  baseUrl = "https://vibenote.sbs"
 ): string {
   const { prompts, total, page, totalPages } = data;
 
@@ -22,7 +23,7 @@ export function renderHomePage(
   ];
 
   const cardsHtml = prompts.map(p => renderPromptCard(p, baseUrl)).join("");
-  const paginationHtml = renderPaginationControls(page, totalPages, selectedCategory, searchQuery);
+  const paginationHtml = renderPaginationControls(page, totalPages, selectedCategory, searchQuery, selectedTag);
 
   return `<!DOCTYPE html>
 <html lang="en" class="dark">
@@ -42,7 +43,7 @@ export function renderHomePage(
   <!-- Google Fonts & FontAwesome CDN -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
   <!-- CSS Styles -->
@@ -107,7 +108,15 @@ export function renderHomePage(
     <!-- Main Content Grid -->
     <main class="container main-content">
       <div class="section-header">
-        <h2>Prompt Bank (${total.toLocaleString()})</h2>
+        <div class="header-title-group">
+          <h2>Prompt Bank (${total.toLocaleString()})</h2>
+          ${selectedTag ? `
+            <span class="active-tag-badge">
+              Tag: #${escapeHtml(selectedTag)}
+              <a href="/" class="clear-tag-btn" title="Clear tag filter"><i class="fa-solid fa-xmark"></i></a>
+            </span>
+          ` : ''}
+        </div>
         <div class="sort-wrapper">
           <label for="sortSelect">View:</label>
           <select id="sortSelect" onchange="changeSort(this.value)">
@@ -123,7 +132,7 @@ export function renderHomePage(
           <div class="empty-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
           <h3>No prompts found</h3>
           <p>Try tweaking your search term or category filter.</p>
-          <button class="btn btn-primary" onclick="filterCategory('all')">View All Prompts</button>
+          <a href="/" class="btn btn-primary">View All Prompts</a>
         </div>
       ` : `
         <div class="prompts-grid">
@@ -205,7 +214,7 @@ export function renderHomePage(
         <div class="footer-links">
           <a href="vibenote://">App Protocol: <code>vibenote://</code></a>
           <span>•</span>
-          <span>Deno Deploy</span>
+          <span>vibenote.sbs</span>
         </div>
       </div>
     </footer>
@@ -218,8 +227,11 @@ export function renderHomePage(
 </html>`;
 }
 
-export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://test.10rg.com"): string {
+export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://vibenote.sbs"): string {
   const shortUrl = `${baseUrl}/p/${prompt.shortId}`;
+  const jsonUrl = `${shortUrl}?type=json`;
+  const mdUrl = `${shortUrl}?type=md`;
+  const svgUrl = `${shortUrl}?type=svg`;
   const appDeepLink = `vibenote://prompt/${prompt.shortId}?data=${encodeURIComponent(JSON.stringify(prompt))}`;
 
   const jsonLd = {
@@ -256,7 +268,7 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
   <!-- Google Fonts & FontAwesome CDN -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <style>
@@ -293,7 +305,7 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
         ${prompt.description ? `<p class="detail-desc">${escapeHtml(prompt.description)}</p>` : ''}
         
         <div class="tags-list">
-          ${prompt.tags.map(t => `<span class="tag-item">#${escapeHtml(t)}</span>`).join('')}
+          ${prompt.tags.map(t => `<a href="/?tag=${encodeURIComponent(t)}" class="tag-item">#${escapeHtml(t)}</a>`).join('')}
         </div>
 
         <div class="metrics-row">
@@ -344,13 +356,60 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
               <i class="fa-solid fa-bookmark"></i> Save in App
             </a>
 
-            <a href="/api/prompts/${prompt.shortId}/export" download="${prompt.shortId}.vibe" class="btn btn-secondary">
-              <i class="fa-solid fa-download"></i> Export .vibe
-            </a>
-
             <button class="btn btn-secondary" onclick="copyShortLink('${shortUrl}')">
-              <i class="fa-solid fa-share-nodes"></i> Share
+              <i class="fa-solid fa-share-nodes"></i> Share Link
             </button>
+
+            <a href="${mdUrl}" target="_blank" class="btn btn-secondary">
+              <i class="fa-brands fa-markdown"></i> Export Markdown
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Developer Integration & Direct API Formats -->
+      <div class="panel dev-integration-panel">
+        <div class="panel-header">
+          <h3><i class="fa-solid fa-code"></i> Developer API & Direct Formats</h3>
+          <p>Fetch this prompt directly in your code via <code>JSON</code>, <code>Markdown</code>, or <code>SVG Card</code> endpoints.</p>
+        </div>
+
+        <div class="dev-tabs">
+          <div class="dev-links-grid">
+            <div class="dev-link-card">
+              <span class="dev-link-title"><i class="fa-solid fa-file-code"></i> Direct JSON API</span>
+              <code>GET ${jsonUrl}</code>
+              <button class="btn btn-small btn-secondary" onclick="copyText('${jsonUrl}')"><i class="fa-regular fa-copy"></i> Copy URL</button>
+            </div>
+
+            <div class="dev-link-card">
+              <span class="dev-link-title"><i class="fa-brands fa-markdown"></i> Markdown Raw</span>
+              <code>GET ${mdUrl}</code>
+              <button class="btn btn-small btn-secondary" onclick="copyText('${mdUrl}')"><i class="fa-regular fa-copy"></i> Copy URL</button>
+            </div>
+
+            <div class="dev-link-card">
+              <span class="dev-link-title"><i class="fa-solid fa-image"></i> Dynamic SVG Card</span>
+              <code>GET ${svgUrl}</code>
+              <button class="btn btn-small btn-secondary" onclick="copyText('${svgUrl}')"><i class="fa-regular fa-copy"></i> Copy URL</button>
+            </div>
+          </div>
+
+          <!-- Code Snippets Example -->
+          <div class="code-snippet-box">
+            <div class="snippet-header">
+              <span>JavaScript Fetch Example</span>
+            </div>
+            <pre>const res = await fetch("${jsonUrl}");
+const prompt = await res.json();
+console.log(prompt.title, prompt.content);</pre>
+          </div>
+
+          <div class="code-snippet-box">
+            <div class="snippet-header">
+              <span>cURL Command Example</span>
+            </div>
+            <pre>curl -s "${mdUrl}"</pre>
           </div>
         </div>
       </div>
@@ -361,7 +420,7 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
 
     <footer class="footer">
       <div class="container text-center">
-        <p>VibeNote Smart Prompt Bank &copy; 2026</p>
+        <p>VibeNote Smart Prompt Bank &copy; 2026 — vibenote.sbs</p>
       </div>
     </footer>
   </div>
@@ -420,6 +479,15 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
         showToast("Link copied!");
       } catch (err) {
         showToast("Failed to copy link");
+      }
+    }
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast("Copied!");
+      } catch (err) {
+        showToast("Failed to copy");
       }
     }
 
@@ -482,7 +550,7 @@ function renderPromptCard(p: PromptDoc, baseUrl: string): string {
       </p>
 
       <div class="card-tags">
-        ${p.tags.slice(0, 3).map(t => `<span class="tag-item">#${escapeHtml(t)}</span>`).join('')}
+        ${p.tags.slice(0, 4).map(t => `<a href="/?tag=${encodeURIComponent(t)}" class="tag-item" onclick="event.stopPropagation()">#${escapeHtml(t)}</a>`).join('')}
       </div>
 
       <div class="card-footer">
@@ -499,7 +567,7 @@ function renderPromptCard(p: PromptDoc, baseUrl: string): string {
   `;
 }
 
-function renderPaginationControls(page: number, totalPages: number, category: string, search: string): string {
+function renderPaginationControls(page: number, totalPages: number, category: string, search: string, tag: string): string {
   if (totalPages <= 1) return "";
 
   const prevPage = page > 1 ? page - 1 : 1;
@@ -509,6 +577,7 @@ function renderPaginationControls(page: number, totalPages: number, category: st
     const params = new URLSearchParams();
     if (category && category !== 'all') params.set('category', category);
     if (search) params.set('search', search);
+    if (tag) params.set('tag', tag);
     params.set('page', p.toString());
     return '/?' + params.toString();
   };
@@ -652,6 +721,15 @@ function getGlobalStyles(): string {
       background: var(--accent-primary); color: white; border-color: var(--accent-primary);
     }
 
+    /* Active Tag Badge */
+    .header-title-group { display: flex; align-items: center; gap: 0.75rem; }
+    .active-tag-badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3);
+      padding: 0.25rem 0.65rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+    }
+    .clear-tag-btn { color: var(--accent-cyan); text-decoration: none; font-size: 0.85rem; }
+
     /* Grid & Cards */
     .main-content { margin-bottom: 3.5rem; }
     .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
@@ -683,7 +761,9 @@ function getGlobalStyles(): string {
     .card-title a:hover { color: var(--accent-primary); }
     .card-snippet { font-size: 0.86rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.85rem; flex: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
     .card-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1rem; }
-    .tag-item { font-size: 0.72rem; color: #9CA3AF; background: rgba(255,255,255,0.04); padding: 0.15rem 0.45rem; border-radius: 4px; }
+    .tag-item { font-size: 0.72rem; color: #A78BFA; background: rgba(139, 92, 246, 0.1); padding: 0.15rem 0.45rem; border-radius: 4px; text-decoration: none; transition: background 0.2s; }
+    .tag-item:hover { background: rgba(139, 92, 246, 0.25); color: white; }
+
     .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 0.85rem; }
     .card-stats { display: flex; gap: 0.75rem; font-size: 0.78rem; color: var(--text-muted); }
     .card-actions { display: flex; gap: 0.4rem; }
@@ -705,6 +785,17 @@ function getGlobalStyles(): string {
     }
     .page-num:hover, .page-num.active { background: var(--accent-primary); color: white; border-color: var(--accent-primary); }
     .page-ellipsis { padding: 0 0.25rem; color: var(--text-muted); }
+
+    /* Developer Integration Panel */
+    .dev-integration-panel { margin-top: 2rem; }
+    .dev-links-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+    .dev-link-card { background: #06080D; border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .dev-link-title { font-size: 0.85rem; font-weight: 700; color: var(--accent-cyan); display: flex; align-items: center; gap: 0.4rem; }
+    .dev-link-card code { font-family: 'Fira Code', monospace; font-size: 0.78rem; color: #E5E7EB; word-break: break-all; }
+    
+    .code-snippet-box { background: #06080D; border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; margin-top: 0.75rem; }
+    .snippet-header { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; }
+    .code-snippet-box pre { font-family: 'Fira Code', monospace; font-size: 0.85rem; color: #A78BFA; overflow-x: auto; }
 
     /* Empty state */
     .empty-state { text-align: center; padding: 3rem 1rem; background: var(--bg-card); border-radius: 14px; border: 1px dashed var(--border-color); }
@@ -742,7 +833,7 @@ function getGlobalStyles(): string {
       background: #06080D; border: 1px solid var(--border-color); border-radius: 12px;
       padding: 1rem; min-height: 220px; max-height: 400px; overflow-y: auto; margin-bottom: 1.25rem;
     }
-    .prompt-output-box pre { white-space: pre-wrap; word-wrap: break-word; font-family: 'Fira Code', monospace, sans-serif; font-size: 0.9rem; line-height: 1.55; color: #E5E7EB; }
+    .prompt-output-box pre { white-space: pre-wrap; word-wrap: break-word; font-family: 'Fira Code', monospace; font-size: 0.9rem; line-height: 1.55; color: #E5E7EB; }
 
     .action-buttons-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
 
