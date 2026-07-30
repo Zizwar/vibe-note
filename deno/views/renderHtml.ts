@@ -231,6 +231,7 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://vib
   const shortUrl = `${baseUrl}/p/${prompt.shortId}`;
   const jsonUrl = `${shortUrl}?type=json`;
   const mdUrl = `${shortUrl}?type=md`;
+  const xmlUrl = `${shortUrl}?type=xml`;
   const svgUrl = `${shortUrl}?type=svg`;
   const appDeepLink = `vibenote://prompt/${prompt.shortId}?data=${encodeURIComponent(JSON.stringify(prompt))}`;
 
@@ -386,6 +387,12 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://vib
               <span class="dev-link-title"><i class="fa-brands fa-markdown"></i> Markdown Raw</span>
               <code>GET ${mdUrl}</code>
               <button class="btn btn-small btn-secondary" onclick="copyText('${mdUrl}')"><i class="fa-regular fa-copy"></i> Copy URL</button>
+            </div>
+
+            <div class="dev-link-card">
+              <span class="dev-link-title"><i class="fa-solid fa-code"></i> Direct XML API</span>
+              <code>GET ${xmlUrl}</code>
+              <button class="btn btn-small btn-secondary" onclick="copyText('${xmlUrl}')"><i class="fa-regular fa-copy"></i> Copy URL</button>
             </div>
 
             <div class="dev-link-card">

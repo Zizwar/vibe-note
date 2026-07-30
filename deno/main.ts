@@ -98,6 +98,29 @@ ${prompt.content}
         });
       }
 
+      // Format 4: Raw XML
+      if (formatType === "xml" || acceptHeader.includes("application/xml") || acceptHeader.includes("text/xml")) {
+        const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+<vibenote_prompt id="${escapeXml(prompt.shortId)}">
+  <title>${escapeXml(prompt.title)}</title>
+  <category>${escapeXml(prompt.category)}</category>
+  <platform>${escapeXml(prompt.platform)}</platform>
+  <description>${escapeXml(prompt.description || '')}</description>
+  <content><![CDATA[${prompt.content}]]></content>
+  <tags>
+    ${prompt.tags.map(t => `<tag>${escapeXml(t)}</tag>`).join('\n    ')}
+  </tags>
+  <variables>
+    ${(prompt.variables || []).map(v => `<variable name="${escapeXml(v.name)}" type="${escapeXml(v.type)}"${v.defaultValue ? ` default="${escapeXml(v.defaultValue)}"` : ''}/>`).join('\n    ')}
+  </variables>
+  <created_at>${prompt.createdAt}</created_at>
+</vibenote_prompt>`;
+
+        return new Response(xmlContent, {
+          headers: { "Content-Type": "application/xml; charset=utf-8", ...corsHeaders },
+        });
+      }
+
       // Default: HTML Web Page
       const html = renderPromptDetailPage(prompt, baseUrl);
       return new Response(html, {
@@ -265,4 +288,14 @@ function generatePromptSvg(prompt: PromptDoc): string {
     <text x="40" y="405" fill="#6B7280" font-family="'Inter', sans-serif" font-size="12">Tags: ${tags}</text>
     <text x="760" y="405" text-anchor="end" fill="#8B5CF6" font-family="'Inter', sans-serif" font-weight="bold" font-size="13">https://vibenote.sbs/p/${prompt.shortId}</text>
   </svg>`;
+}
+
+function escapeXml(str: string): string {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
