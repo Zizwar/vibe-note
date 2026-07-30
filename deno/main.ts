@@ -1,4 +1,4 @@
-import { initDatabase, getPublicPrompts, getPromptByShortId, savePrompt, incrementStats } from "./db.ts";
+import { initDatabase, getPublicPrompts, getPromptByShortId, savePrompt, incrementStats, seedDatabase } from "./db.ts";
 import { renderHomePage, renderPromptDetailPage } from "./views/renderHtml.ts";
 import { extractVariables } from "./variableParser.ts";
 
@@ -187,6 +187,17 @@ Deno.serve({ port: PORT }, async (req: Request) => {
 
       await incrementStats(shortId, type);
       return new Response(JSON.stringify({ success: true }), {
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Route 8: API Seed Database
+    // -------------------------------------------------------------
+    if (path === "/api/seed") {
+      const force = url.searchParams.get("force") === "true";
+      const result = await seedDatabase(force);
+      return new Response(JSON.stringify({ success: true, ...result }), {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }

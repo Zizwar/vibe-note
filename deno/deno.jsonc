@@ -1,0 +1,11 @@
+{
+  "deploy": {
+    "org": "wino",
+    "app": "vibe-note"
+  },
+  "imports": {
+    "mongodb": "npm:mongodb@6.8.0"
+  },
+  "nodeModulesDir": "auto"
+}
+

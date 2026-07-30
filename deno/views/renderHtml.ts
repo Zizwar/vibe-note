@@ -1,4 +1,4 @@
-import { PromptDoc } from "../db.ts";
+import { PromptDoc, VariableDefinition } from "../db.ts";
 
 export function renderHomePage(prompts: PromptDoc[], selectedCategory = "all", searchQuery = "", baseUrl = "https://test.10rg.com"): string {
   const categoryList = [
@@ -434,7 +434,7 @@ function renderVariableControl(v: VariableDefinition): string {
       <div class="var-field">
         <label for="var_${v.name}">${escapeHtml(v.name)} <span class="var-type">(select)</span></label>
         <select id="var_${v.name}" class="var-input" onchange="updateCompiledPrompt()">
-          ${v.options.map(opt => `
+          ${v.options.map((opt: string) => `
             <option value="${escapeHtml(opt)}" ${opt === v.defaultValue ? 'selected' : ''}>${escapeHtml(opt)}</option>
           `).join('')}
         </select>

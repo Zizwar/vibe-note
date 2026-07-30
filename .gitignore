@@ -1,7 +1,8 @@
 node_modules/
 .expo/
 deno/.env
-deno/data/
+# deno/data/
+bank/
 dist/
 web-build/
 *.log

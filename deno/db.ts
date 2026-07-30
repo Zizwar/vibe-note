@@ -1,4 +1,4 @@
-import { MongoClient, Collection } from "npm:mongodb@6.8.0";
+import { MongoClient, Collection } from "mongodb";
 import { parse } from "https://deno.land/std@0.224.0/dotenv/mod.ts";
 
 export interface VariableDefinition {
@@ -39,21 +39,27 @@ const MONGODB_URI = env.MONGOD_FULL_URI || env.MONGODB_URI || Deno.env.get("MONG
 
 let mongoCollection: Collection<PromptDoc> | null = null;
 let useFallbackDb = false;
+const LOCAL_DB_PATH = new URL("./data/prompts.json", import.meta.url);
 
-// Fallback local storage file
-const LOCAL_DB_PATH = "./data/prompts.json";
+let cachedLocalPrompts: PromptDoc[] | null = null;
+
+export async function loadLocalPrompts(): Promise<PromptDoc[]> {
+  if (cachedLocalPrompts && cachedLocalPrompts.length > 0) {
+    return cachedLocalPrompts;
+  }
+  try {
+    const text = await Deno.readTextFile(LOCAL_DB_PATH);
+    const parsed: PromptDoc[] = JSON.parse(text);
+    cachedLocalPrompts = parsed;
+    return parsed;
+  } catch (err) {
+    console.warn("Could not read LOCAL_DB_PATH:", err);
+    return getInitialSeedData();
+  }
+}
 
 async function ensureLocalDbDir() {
-  try {
-    await Deno.mkdir("./data", { recursive: true });
-    try {
-      await Deno.stat(LOCAL_DB_PATH);
-    } catch {
-      await Deno.writeTextFile(LOCAL_DB_PATH, JSON.stringify(getInitialSeedData(), null, 2));
-    }
-  } catch (e) {
-    console.error("Local DB init error:", e);
-  }
+  // Static fallback file exists in ./data/prompts.json
 }
 
 function getInitialSeedData(): PromptDoc[] {
@@ -139,10 +145,41 @@ export async function initDatabase() {
     const db = client.db("vibenote");
     mongoCollection = db.collection<PromptDoc>("prompts");
     console.log("✅ Successfully connected to MongoDB Atlas!");
+    await seedDatabase();
   } catch (err: any) {
     console.warn(`⚠️ MongoDB Atlas connection failed (${err.message}). Using local JSON storage fallback.`);
     useFallbackDb = true;
   }
+}
+
+export async function seedDatabase(force = false): Promise<{ seeded: number; total: number }> {
+  let count = 0;
+  if (!useFallbackDb && mongoCollection) {
+    try {
+      count = await mongoCollection.countDocuments();
+      if (count < 100 || force) {
+        console.log("🌱 Seeding 10,000+ prompts into MongoDB Atlas...");
+        const list = await loadLocalPrompts();
+        if (list.length > 0) {
+          const ops = list.map(p => ({
+            updateOne: {
+              filter: { shortId: p.shortId },
+              update: { $set: p },
+              upsert: true,
+            }
+          }));
+          for (let i = 0; i < ops.length; i += 1000) {
+            await mongoCollection.bulkWrite(ops.slice(i, i + 1000), { ordered: false });
+          }
+          console.log(`✅ Successfully seeded ${list.length} prompts into MongoDB Atlas!`);
+          return { seeded: list.length, total: list.length };
+        }
+      }
+    } catch (sErr) {
+      console.warn("Seeding warning:", sErr);
+    }
+  }
+  return { seeded: 0, total: count };
 }
 
 // Data methods
@@ -174,8 +211,7 @@ export async function getPublicPrompts(options?: { category?: string; search?: s
 
   // Fallback DB read
   try {
-    const raw = await Deno.readTextFile(LOCAL_DB_PATH);
-    let list: PromptDoc[] = JSON.parse(raw);
+    let list = await loadLocalPrompts();
     list = list.filter(p => p.isPublic !== false);
     if (category && category !== 'all') {
       list = list.filter(p => p.category === category);
@@ -210,8 +246,7 @@ export async function getPromptByShortId(shortId: string): Promise<PromptDoc | n
   }
 
   try {
-    const raw = await Deno.readTextFile(LOCAL_DB_PATH);
-    const list: PromptDoc[] = JSON.parse(raw);
+    const list = await loadLocalPrompts();
     return list.find(p => p.shortId === shortId) || null;
   } catch {
     return null;
