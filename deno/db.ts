@@ -182,11 +182,30 @@ export async function seedDatabase(force = false): Promise<{ seeded: number; tot
   return { seeded: 0, total: count };
 }
 
+export interface PaginatedPrompts {
+  prompts: PromptDoc[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 // Data methods
-export async function getPublicPrompts(options?: { category?: string; search?: string; limit?: number; sort?: string }): Promise<PromptDoc[]> {
+export async function getPublicPrompts(options?: {
+  category?: string;
+  search?: string;
+  limit?: number;
+  page?: number;
+  sort?: string;
+}): Promise<PaginatedPrompts> {
   const category = options?.category;
   const search = options?.search?.toLowerCase();
-  const limit = options?.limit || 50;
+
+  // Strict limit capping: max 50 per fetch
+  const requestedLimit = Number(options?.limit) || 24;
+  const limit = Math.min(Math.max(requestedLimit, 1), 50);
+  const page = Math.max(Number(options?.page) || 1, 1);
+  const skip = (page - 1) * limit;
 
   if (!useFallbackDb && mongoCollection) {
     try {
@@ -203,7 +222,12 @@ export async function getPublicPrompts(options?: { category?: string; search?: s
         ];
       }
       const sortOption: any = options?.sort === 'popular' ? { copies: -1, views: -1 } : { createdAt: -1 };
-      return await mongoCollection.find(query).sort(sortOption).limit(limit).toArray();
+      
+      const total = await mongoCollection.countDocuments(query);
+      const prompts = await mongoCollection.find(query).sort(sortOption).skip(skip).limit(limit).toArray();
+      const totalPages = Math.ceil(total / limit) || 1;
+
+      return { prompts, total, page, limit, totalPages };
     } catch (e) {
       console.error("MongoDB query error, falling back:", e);
     }
@@ -229,9 +253,15 @@ export async function getPublicPrompts(options?: { category?: string; search?: s
     } else {
       list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
-    return list.slice(0, limit);
+
+    const total = list.length;
+    const totalPages = Math.ceil(total / limit) || 1;
+    const paginated = list.slice(skip, skip + limit);
+
+    return { prompts: paginated, total, page, limit, totalPages };
   } catch {
-    return getInitialSeedData();
+    const seed = getInitialSeedData();
+    return { prompts: seed, total: seed.length, page: 1, limit: 24, totalPages: 1 };
   }
 }
 

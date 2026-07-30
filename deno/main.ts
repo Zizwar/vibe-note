@@ -37,9 +37,12 @@ Deno.serve({ port: PORT }, async (req: Request) => {
       const category = url.searchParams.get("category") || "all";
       const search = url.searchParams.get("search") || "";
       const sort = url.searchParams.get("sort") || "latest";
+      const page = Number(url.searchParams.get("page")) || 1;
+      const rawLimit = Number(url.searchParams.get("limit")) || 24;
+      const limit = Math.min(Math.max(rawLimit, 1), 50);
 
-      const prompts = await getPublicPrompts({ category, search, sort });
-      const html = renderHomePage(prompts, category, search, baseUrl);
+      const paginatedData = await getPublicPrompts({ category, search, sort, page, limit });
+      const html = renderHomePage(paginatedData, category, search, baseUrl);
       return new Response(html, {
         headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
       });
@@ -118,9 +121,12 @@ Deno.serve({ port: PORT }, async (req: Request) => {
       const category = url.searchParams.get("category") || "all";
       const search = url.searchParams.get("search") || "";
       const sort = url.searchParams.get("sort") || "latest";
+      const page = Number(url.searchParams.get("page")) || 1;
+      const rawLimit = Number(url.searchParams.get("limit")) || 24;
+      const limit = Math.min(Math.max(rawLimit, 1), 50);
 
-      const prompts = await getPublicPrompts({ category, search, sort });
-      return new Response(JSON.stringify(prompts), {
+      const result = await getPublicPrompts({ category, search, sort, page, limit });
+      return new Response(JSON.stringify(result), {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }

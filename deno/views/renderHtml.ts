@@ -1,20 +1,28 @@
-import { PromptDoc, VariableDefinition } from "../db.ts";
+import { PromptDoc, VariableDefinition, PaginatedPrompts } from "../db.ts";
 
-export function renderHomePage(prompts: PromptDoc[], selectedCategory = "all", searchQuery = "", baseUrl = "https://test.10rg.com"): string {
+export function renderHomePage(
+  data: PaginatedPrompts,
+  selectedCategory = "all",
+  searchQuery = "",
+  baseUrl = "https://test.10rg.com"
+): string {
+  const { prompts, total, page, totalPages } = data;
+
   const categoryList = [
-    { id: "all", label: "✨ All Prompts" },
-    { id: "image", label: "🖼️ Image & Art" },
-    { id: "code", label: "💻 Code & Dev" },
-    { id: "writing", label: "✍️ Writing & Content" },
-    { id: "marketing", label: "📢 Marketing & SEO" },
-    { id: "business", label: "💼 Business" },
-    { id: "video", label: "🎬 Video & Motion" },
-    { id: "music", label: "🎵 Music & Audio" },
-    { id: "education", label: "🎓 Education" },
-    { id: "other", label: "⚡ Other" },
+    { id: "all", label: '<i class="fa-solid fa-layer-group"></i> All' },
+    { id: "code", label: '<i class="fa-solid fa-code"></i> Code' },
+    { id: "image", label: '<i class="fa-solid fa-image"></i> Art & Image' },
+    { id: "writing", label: '<i class="fa-solid fa-pen-nib"></i> Writing' },
+    { id: "marketing", label: '<i class="fa-solid fa-bullhorn"></i> Marketing' },
+    { id: "business", label: '<i class="fa-solid fa-briefcase"></i> Business' },
+    { id: "education", label: '<i class="fa-solid fa-graduation-cap"></i> Education' },
+    { id: "video", label: '<i class="fa-solid fa-film"></i> Video' },
+    { id: "music", label: '<i class="fa-solid fa-music"></i> Music' },
+    { id: "other", label: '<i class="fa-solid fa-sliders"></i> Other' },
   ];
 
   const cardsHtml = prompts.map(p => renderPromptCard(p, baseUrl)).join("");
+  const paginationHtml = renderPaginationControls(page, totalPages, selectedCategory, searchQuery);
 
   return `<!DOCTYPE html>
 <html lang="en" class="dark">
@@ -22,19 +30,20 @@ export function renderHomePage(prompts: PromptDoc[], selectedCategory = "all", s
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vibe Note — AI Prompt Bank & Variable Engine</title>
-  <meta name="description" content="Discover, test, and save curated AI prompts with dynamic variables for ChatGPT, Midjourney, Claude, Gemini, and more. Connect directly with the Vibe Note app.">
-  <meta name="keywords" content="AI prompts, prompt engineering, ChatGPT prompts, Midjourney prompts, Vibe Note, AI variable engine">
+  <meta name="description" content="Discover, test, and save curated AI prompts with dynamic variables.">
+  <meta name="keywords" content="AI prompts, prompt engineering, ChatGPT prompts, Midjourney prompts, Vibe Note">
   
   <!-- OpenGraph -->
   <meta property="og:title" content="Vibe Note — AI Prompt Bank & Variable Engine">
-  <meta property="og:description" content="Discover, test, and save curated AI prompts with dynamic variables. Open directly in the Vibe Note mobile app.">
+  <meta property="og:description" content="Discover, test, and save curated AI prompts with dynamic variables.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="${baseUrl}">
   
-  <!-- Google Fonts -->
+  <!-- Google Fonts & FontAwesome CDN -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
   <!-- CSS Styles -->
   <style>
@@ -47,15 +56,15 @@ export function renderHomePage(prompts: PromptDoc[], selectedCategory = "all", s
     <header class="navbar">
       <div class="container nav-container">
         <a href="/" class="brand-logo">
-          <div class="logo-icon">⚡</div>
+          <div class="logo-icon"><i class="fa-solid fa-bolt"></i></div>
           <span class="brand-name">Vibe<span class="gradient-text">Note</span></span>
         </a>
         <div class="nav-actions">
-          <button class="btn btn-secondary" onclick="openCreateModal()">
-            <span>+</span> Submit Prompt
+          <button class="btn btn-secondary btn-compact" onclick="openCreateModal()">
+            <i class="fa-solid fa-plus"></i> <span class="hide-mobile">Submit</span>
           </button>
-          <a href="vibenote://" class="btn btn-primary btn-glow">
-            <span>📱</span> Open App
+          <a href="vibenote://" class="btn btn-primary btn-glow btn-compact">
+            <i class="fa-solid fa-mobile-screen-button"></i> <span class="hide-mobile">App</span>
           </a>
         </div>
       </div>
@@ -64,21 +73,21 @@ export function renderHomePage(prompts: PromptDoc[], selectedCategory = "all", s
     <!-- Hero Section -->
     <section class="hero-section">
       <div class="container text-center">
-        <div class="hero-badge">🚀 Powered by AI Variable Engine</div>
+        <div class="hero-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> Variable Engine</div>
         <h1 class="hero-title">
           Master Your Prompts.<br>
           <span class="gradient-text">Fill Variables & Launch Anywhere.</span>
         </h1>
         <p class="hero-subtitle">
-          Explore curated prompts, test variable inputs live, and sync seamlessly with the <strong>Vibe Note</strong> mobile application.
+          Explore ${total.toLocaleString()} prompts, test variable inputs live, and sync with the <strong>Vibe Note</strong> app.
         </p>
 
-        <!-- Search Bar -->
+        <!-- Compact Search Bar -->
         <div class="search-box-wrapper">
           <div class="search-input-box">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="Search prompts by title, tag, or topic... (Press '/' to search)" value="${escapeHtml(searchQuery)}" onkeyup="handleSearch(event)">
-            <button class="btn-search" onclick="triggerSearch()">Search</button>
+            <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+            <input type="text" id="searchInput" placeholder="Title, tag, or topic..." value="${escapeHtml(searchQuery)}" onkeyup="handleSearch(event)">
+            <button class="btn-search" onclick="triggerSearch()"><i class="fa-solid fa-magnifying-glass"></i></button>
           </div>
         </div>
       </div>
@@ -98,19 +107,19 @@ export function renderHomePage(prompts: PromptDoc[], selectedCategory = "all", s
     <!-- Main Content Grid -->
     <main class="container main-content">
       <div class="section-header">
-        <h2>Curated Prompt Bank (${prompts.length})</h2>
+        <h2>Prompt Bank (${total.toLocaleString()})</h2>
         <div class="sort-wrapper">
-          <label for="sortSelect">Sort by:</label>
+          <label for="sortSelect">Sort:</label>
           <select id="sortSelect" onchange="changeSort(this.value)">
             <option value="latest">Latest</option>
-            <option value="popular">Most Popular</option>
+            <option value="popular">Popular</option>
           </select>
         </div>
       </div>
 
       ${prompts.length === 0 ? `
         <div class="empty-state">
-          <div class="empty-icon">🔍</div>
+          <div class="empty-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
           <h3>No prompts found</h3>
           <p>Try tweaking your search term or category filter.</p>
           <button class="btn btn-primary" onclick="filterCategory('all')">View All Prompts</button>
@@ -119,20 +128,21 @@ export function renderHomePage(prompts: PromptDoc[], selectedCategory = "all", s
         <div class="prompts-grid">
           ${cardsHtml}
         </div>
+        ${paginationHtml}
       `}
-    </section>
+    </main>
 
     <!-- Modal for Submit Prompt -->
     <div id="createModal" class="modal-backdrop" onclick="closeCreateModal(event)">
       <div class="modal-card" onclick="event.stopPropagation()">
         <div class="modal-header">
-          <h3>Submit a Prompt to Vibe Note</h3>
-          <button class="close-btn" onclick="closeCreateModal()">✕</button>
+          <h3>Submit a Prompt</h3>
+          <button class="close-btn" onclick="closeCreateModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <form id="createForm" onsubmit="submitPrompt(event)">
           <div class="form-group">
             <label>Prompt Title *</label>
-            <input type="text" id="pTitle" required placeholder="e.g. Senior Code Reviewer">
+            <input type="text" id="pTitle" required placeholder="e.g. Code Reviewer">
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -150,7 +160,7 @@ export function renderHomePage(prompts: PromptDoc[], selectedCategory = "all", s
               </select>
             </div>
             <div class="form-group">
-              <label>Target AI Platform</label>
+              <label>Platform</label>
               <select id="pPlatform">
                 <option value="chatgpt">ChatGPT</option>
                 <option value="claude">Claude</option>
@@ -166,16 +176,16 @@ export function renderHomePage(prompts: PromptDoc[], selectedCategory = "all", s
             <input type="text" id="pDescription" placeholder="Brief summary of what this prompt accomplishes">
           </div>
           <div class="form-group">
-            <label>Prompt Template (use {{variable}} or {{var:opt1|opt2}} syntax) *</label>
-            <textarea id="pContent" rows="5" required placeholder="Write your prompt template here. Use {{language}} or {{tone:fun|serious}} for interactive variables!"></textarea>
+            <label>Prompt Template *</label>
+            <textarea id="pContent" rows="5" required placeholder="Write your prompt template here. Use {{variable}} for interactive inputs."></textarea>
           </div>
           <div class="form-group">
             <label>Tags (comma separated)</label>
-            <input type="text" id="pTags" placeholder="e.g. typescript, clean-code, refactor">
+            <input type="text" id="pTags" placeholder="e.g. typescript, clean-code">
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
-            <button type="submit" class="btn btn-primary">Publish Prompt</button>
+            <button type="submit" class="btn btn-primary">Publish</button>
           </div>
         </form>
       </div>
@@ -189,12 +199,12 @@ export function renderHomePage(prompts: PromptDoc[], selectedCategory = "all", s
       <div class="container footer-container">
         <div class="footer-brand">
           <span class="brand-name">Vibe<span class="gradient-text">Note</span></span>
-          <p>Smart AI Prompt Management & Variable System.</p>
+          <p>Smart AI Prompt Management System</p>
         </div>
         <div class="footer-links">
           <a href="vibenote://">App Protocol: <code>vibenote://</code></a>
           <span>•</span>
-          <span>Deployable on Deno Deploy</span>
+          <span>Deno Deploy</span>
         </div>
       </div>
     </footer>
@@ -211,7 +221,6 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
   const shortUrl = `${baseUrl}/p/${prompt.shortId}`;
   const appDeepLink = `vibenote://prompt/${prompt.shortId}?data=${encodeURIComponent(JSON.stringify(prompt))}`;
 
-  // Structured Data JSON-LD
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareSourceCode",
@@ -243,10 +252,11 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
     ${JSON.stringify(jsonLd)}
   </script>
 
-  <!-- Google Fonts -->
+  <!-- Google Fonts & FontAwesome CDN -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <style>
     ${getGlobalStyles()}
@@ -258,13 +268,13 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
     <header class="navbar">
       <div class="container nav-container">
         <a href="/" class="brand-logo">
-          <div class="logo-icon">⚡</div>
+          <div class="logo-icon"><i class="fa-solid fa-bolt"></i></div>
           <span class="brand-name">Vibe<span class="gradient-text">Note</span></span>
         </a>
         <div class="nav-actions">
-          <a href="/" class="btn btn-secondary">← Back to Bank</a>
-          <a href="${appDeepLink}" class="btn btn-primary btn-glow">
-            <span>📱</span> Open in App
+          <a href="/" class="btn btn-secondary btn-compact"><i class="fa-solid fa-arrow-left"></i> <span class="hide-mobile">Bank</span></a>
+          <a href="${appDeepLink}" class="btn btn-primary btn-glow btn-compact">
+            <i class="fa-solid fa-mobile-screen-button"></i> <span class="hide-mobile">App</span>
           </a>
         </div>
       </div>
@@ -286,9 +296,9 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
         </div>
 
         <div class="metrics-row">
-          <span>👀 ${prompt.views || 0} views</span>
-          <span>📋 ${prompt.copies || 0} copies</span>
-          <span>📅 ${new Date(prompt.createdAt).toLocaleDateString()}</span>
+          <span><i class="fa-regular fa-eye"></i> ${prompt.views || 0}</span>
+          <span><i class="fa-regular fa-copy"></i> ${prompt.copies || 0}</span>
+          <span><i class="fa-regular fa-calendar"></i> ${new Date(prompt.createdAt).toLocaleDateString()}</span>
         </div>
       </div>
 
@@ -297,12 +307,12 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
         <!-- Left: Variable Controls -->
         <div class="panel variable-panel">
           <div class="panel-header">
-            <h3>🎛️ Dynamic Variables (${prompt.variables ? prompt.variables.length : 0})</h3>
+            <h3><i class="fa-solid fa-sliders"></i> Dynamic Variables (${prompt.variables ? prompt.variables.length : 0})</h3>
             <p>Adjust variables below to customize your prompt in real-time.</p>
           </div>
           ${(!prompt.variables || prompt.variables.length === 0) ? `
             <div class="no-vars-msg">
-              <span>ℹ️</span> This prompt has no variables embedded. You can copy the template directly.
+              <i class="fa-solid fa-circle-info"></i> This prompt has no variables embedded. You can copy the template directly.
             </div>
           ` : `
             <form id="varsForm" oninput="updateCompiledPrompt()">
@@ -314,7 +324,7 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
         <!-- Right: Live Compiled Prompt Box -->
         <div class="panel output-panel">
           <div class="panel-header flex-between">
-            <h3>⚡ Live Compiled Output</h3>
+            <h3><i class="fa-solid fa-bolt"></i> Live Output</h3>
             <button class="btn btn-small btn-secondary" onclick="toggleViewMode()" id="viewModeBtn">
               Show Template Syntax
             </button>
@@ -326,19 +336,19 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
 
           <div class="action-buttons-group">
             <button class="btn btn-primary btn-glow" onclick="copyCompiledPrompt('${prompt.shortId}')">
-              <span>📋</span> Copy Compiled Prompt
+              <i class="fa-regular fa-copy"></i> Copy Prompt
             </button>
 
             <a href="${appDeepLink}" class="btn btn-accent">
-              <span>📱</span> Save in VibeNote App
+              <i class="fa-solid fa-bookmark"></i> Save in App
             </a>
 
             <a href="/api/prompts/${prompt.shortId}/export" download="${prompt.shortId}.vibe" class="btn btn-secondary">
-              <span>📥</span> Download .vibe File
+              <i class="fa-solid fa-download"></i> Export .vibe
             </a>
 
             <button class="btn btn-secondary" onclick="copyShortLink('${shortUrl}')">
-              <span>🔗</span> Share Link
+              <i class="fa-solid fa-share-nodes"></i> Share
             </button>
           </div>
         </div>
@@ -350,7 +360,7 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
 
     <footer class="footer">
       <div class="container text-center">
-        <p>VibeNote Smart Prompt Bank & Variable Engine &copy; 2026</p>
+        <p>VibeNote Smart Prompt Bank &copy; 2026</p>
       </div>
     </footer>
   </div>
@@ -374,7 +384,6 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
         varsData.forEach(v => {
           const input = document.getElementById("var_" + v.name);
           const val = input ? input.value : (v.defaultValue || "");
-          // Replace {{varName}} and {{varName|default}} and {{varName:opt1|opt2}}
           const regex = new RegExp("\\{\\{\\s*" + v.name + "\\s*(?:[:|][^}]*)?\\}\\}", "g");
           text = text.replace(regex, val);
         });
@@ -397,19 +406,19 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
       const text = document.getElementById("compiledContent").textContent;
       try {
         await navigator.clipboard.writeText(text);
-        showToast("✅ Copied to clipboard!");
+        showToast("Copied to clipboard!");
         fetch('/api/prompts/' + shortId + '/stats', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ type: 'copy' }) });
       } catch (err) {
-        showToast("❌ Failed to copy");
+        showToast("Failed to copy");
       }
     }
 
     async function copyShortLink(url) {
       try {
         await navigator.clipboard.writeText(url);
-        showToast("🔗 Link copied to clipboard!");
+        showToast("Link copied!");
       } catch (err) {
-        showToast("❌ Failed to copy link");
+        showToast("Failed to copy link");
       }
     }
 
@@ -420,7 +429,6 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://tes
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-    // Init
     renderCompiled();
     fetch('/api/prompts/${prompt.shortId}/stats', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ type: 'view' }) });
   </script>
@@ -461,7 +469,7 @@ function renderPromptCard(p: PromptDoc, baseUrl: string): string {
           <span class="badge cat-badge">${escapeHtml(p.category.toUpperCase())}</span>
           <span class="badge platform-badge">${escapeHtml(p.platform.toUpperCase())}</span>
         </div>
-        <span class="card-vars-count">⚡ ${p.variables ? p.variables.length : 0} vars</span>
+        <span class="card-vars-count"><i class="fa-solid fa-sliders"></i> ${p.variables ? p.variables.length : 0}</span>
       </div>
       
       <h3 class="card-title">
@@ -478,14 +486,61 @@ function renderPromptCard(p: PromptDoc, baseUrl: string): string {
 
       <div class="card-footer">
         <div class="card-stats">
-          <span>👀 ${p.views || 0}</span>
-          <span>📋 ${p.copies || 0}</span>
+          <span><i class="fa-regular fa-eye"></i> ${p.views || 0}</span>
+          <span><i class="fa-regular fa-copy"></i> ${p.copies || 0}</span>
         </div>
         <div class="card-actions">
-          <a href="${shortUrl}" class="btn btn-small btn-secondary">Test / View</a>
-          <a href="${appDeepLink}" class="btn btn-small btn-primary" title="Open in VibeNote App">Save in App</a>
+          <a href="${shortUrl}" class="btn btn-small btn-secondary"><i class="fa-solid fa-play"></i> Test</a>
+          <a href="${appDeepLink}" class="btn btn-small btn-primary" title="Open in VibeNote App"><i class="fa-solid fa-bookmark"></i> Save</a>
         </div>
       </div>
+    </div>
+  `;
+}
+
+function renderPaginationControls(page: number, totalPages: number, category: string, search: string): string {
+  if (totalPages <= 1) return "";
+
+  const prevPage = page > 1 ? page - 1 : 1;
+  const nextPage = page < totalPages ? page + 1 : totalPages;
+
+  const buildUrl = (p: number) => {
+    const params = new URLSearchParams();
+    if (category && category !== 'all') params.set('category', category);
+    if (search) params.set('search', search);
+    params.set('page', p.toString());
+    return '/?' + params.toString();
+  };
+
+  let pages: (number | string)[] = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (page > 3) pages.push('...');
+    const start = Math.max(2, page - 1);
+    const end = Math.min(totalPages - 1, page + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (page < totalPages - 2) pages.push('...');
+    pages.push(totalPages);
+  }
+
+  return `
+    <div class="pagination-wrapper">
+      <a href="${buildUrl(prevPage)}" class="page-btn ${page === 1 ? 'disabled' : ''}">
+        <i class="fa-solid fa-chevron-left"></i> Prev
+      </a>
+      
+      <div class="page-numbers">
+        ${pages.map(p => {
+          if (p === '...') return `<span class="page-ellipsis">...</span>`;
+          return `<a href="${buildUrl(p as number)}" class="page-num ${p === page ? 'active' : ''}">${p}</a>`;
+        }).join('')}
+      </div>
+
+      <a href="${buildUrl(nextPage)}" class="page-btn ${page === totalPages ? 'disabled' : ''}">
+        Next <i class="fa-solid fa-chevron-right"></i>
+      </a>
     </div>
   `;
 }
@@ -519,7 +574,7 @@ function getGlobalStyles(): string {
     body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; }
 
     .app-layout { display: flex; flex-direction: column; min-height: 100vh; }
-    .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+    .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1.25rem; }
     .text-center { text-align: center; }
 
     /* Typography & Effects */
@@ -533,20 +588,20 @@ function getGlobalStyles(): string {
     /* Navbar */
     .navbar {
       border-bottom: 1px solid var(--border-color);
-      background: rgba(10, 13, 20, 0.8);
+      background: rgba(10, 13, 20, 0.85);
       backdrop-filter: blur(12px);
-      position: sticky; top: 0; z-index: 100; padding: 1rem 0;
+      position: sticky; top: 0; z-index: 100; padding: 0.85rem 0;
     }
     .nav-container { display: flex; justify-content: space-between; align-items: center; }
-    .brand-logo { display: flex; align-items: center; gap: 0.5rem; text-decoration: none; font-size: 1.5rem; font-weight: 800; color: var(--text-main); }
-    .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, #8B5CF6, #06B6D4); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
-    .nav-actions { display: flex; gap: 0.75rem; }
+    .brand-logo { display: flex; align-items: center; gap: 0.5rem; text-decoration: none; font-size: 1.4rem; font-weight: 800; color: var(--text-main); }
+    .logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, #8B5CF6, #06B6D4); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; color: white; }
+    .nav-actions { display: flex; gap: 0.5rem; }
 
     /* Buttons */
     .btn {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      padding: 0.65rem 1.25rem; border-radius: var(--radius); font-weight: 600;
-      font-size: 0.9rem; border: none; cursor: pointer; text-decoration: none; transition: all 0.2s ease;
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.55rem 1rem; border-radius: var(--radius); font-weight: 600;
+      font-size: 0.85rem; border: none; cursor: pointer; text-decoration: none; transition: all 0.2s ease;
     }
     .btn-primary { background: var(--accent-primary); color: white; }
     .btn-primary:hover { background: #7C3AED; transform: translateY(-1px); }
@@ -555,150 +610,184 @@ function getGlobalStyles(): string {
     .btn-accent { background: #06B6D4; color: white; }
     .btn-accent:hover { background: #0891B2; }
     .btn-glow { box-shadow: 0 0 15px var(--accent-glow); }
-    .btn-small { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+    .btn-small { padding: 0.35rem 0.75rem; font-size: 0.8rem; }
+    .btn-compact { padding: 0.45rem 0.85rem; font-size: 0.85rem; }
 
     /* Hero Section */
-    .hero-section { padding: 4rem 0 3rem 0; }
+    .hero-section { padding: 2.5rem 0 2rem 0; }
     .hero-badge {
-      display: inline-block; padding: 0.35rem 1rem; border-radius: 20px;
+      display: inline-block; padding: 0.3rem 0.85rem; border-radius: 20px;
       background: rgba(139, 92, 246, 0.15); color: #A78BFA; border: 1px solid rgba(139, 92, 246, 0.3);
-      font-size: 0.85rem; font-weight: 600; margin-bottom: 1.5rem;
+      font-size: 0.8rem; font-weight: 600; margin-bottom: 1rem;
     }
-    .hero-title { font-size: 3rem; font-weight: 800; line-height: 1.2; margin-bottom: 1rem; }
-    .hero-subtitle { font-size: 1.15rem; color: var(--text-muted); max-width: 650px; margin: 0 auto 2.5rem auto; line-height: 1.6; }
+    .hero-title { font-size: 2.4rem; font-weight: 800; line-height: 1.2; margin-bottom: 0.75rem; }
+    .hero-subtitle { font-size: 1rem; color: var(--text-muted); max-width: 580px; margin: 0 auto 1.75rem auto; line-height: 1.5; }
 
     /* Search Box */
-    .search-box-wrapper { max-width: 650px; margin: 0 auto; }
+    .search-box-wrapper { max-width: 550px; margin: 0 auto; }
     .search-input-box {
       display: flex; align-items: center; background: var(--bg-card);
-      border: 1px solid var(--border-color); border-radius: 16px; padding: 0.5rem 0.75rem 0.5rem 1.25rem;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border: 1px solid var(--border-color); border-radius: 14px; padding: 0.35rem 0.5rem 0.35rem 1rem;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.4);
     }
-    .search-icon { font-size: 1.2rem; margin-right: 0.75rem; color: var(--text-muted); }
+    .search-icon { font-size: 0.95rem; margin-right: 0.6rem; color: var(--text-muted); }
     .search-input-box input {
-      flex: 1; background: transparent; border: none; outline: none; color: white; font-size: 1rem;
+      flex: 1; background: transparent; border: none; outline: none; color: white; font-size: 0.95rem;
     }
     .btn-search {
       background: var(--accent-primary); color: white; border: none;
-      padding: 0.65rem 1.5rem; border-radius: 12px; font-weight: 600; cursor: pointer;
+      padding: 0.55rem 1.1rem; border-radius: 10px; font-weight: 600; cursor: pointer;
     }
 
     /* Category Filter Pills */
-    .categories-section { margin-bottom: 2.5rem; }
-    .categories-scroll { display: flex; gap: 0.6rem; overflow-x: auto; padding-bottom: 0.5rem; scrollbar-width: none; }
+    .categories-section { margin-bottom: 2rem; }
+    .categories-scroll { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.4rem; scrollbar-width: none; }
     .cat-pill {
       background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-color);
-      padding: 0.5rem 1.1rem; border-radius: 30px; white-space: nowrap; font-weight: 500; font-size: 0.85rem;
-      cursor: pointer; transition: all 0.2s ease;
+      padding: 0.45rem 0.95rem; border-radius: 30px; white-space: nowrap; font-weight: 500; font-size: 0.82rem;
+      cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.4rem;
     }
     .cat-pill:hover, .cat-pill.active {
       background: var(--accent-primary); color: white; border-color: var(--accent-primary);
     }
 
     /* Grid & Cards */
-    .main-content { margin-bottom: 4rem; }
-    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .main-content { margin-bottom: 3.5rem; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+    .section-header h2 { font-size: 1.3rem; }
     .sort-wrapper select {
       background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color);
-      padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.85rem; outline: none;
+      padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.82rem; outline: none;
     }
     .prompts-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem;
     }
     .prompt-card {
-      background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px;
-      padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;
+      background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px;
+      padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;
       transition: transform 0.2s ease, border-color 0.2s ease;
     }
-    .prompt-card:hover { transform: translateY(-3px); border-color: rgba(139, 92, 246, 0.4); }
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-    .card-badges { display: flex; gap: 0.4rem; }
+    .prompt-card:hover { transform: translateY(-2px); border-color: rgba(139, 92, 246, 0.4); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+    .card-badges { display: flex; gap: 0.35rem; }
     .badge {
-      font-size: 0.7rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 6px; letter-spacing: 0.5px;
+      font-size: 0.68rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 6px; letter-spacing: 0.5px;
     }
     .cat-badge { background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); }
     .platform-badge { background: rgba(139, 92, 246, 0.15); color: #A78BFA; }
     .id-badge { background: rgba(255, 255, 255, 0.08); color: var(--text-muted); }
-    .card-vars-count { font-size: 0.8rem; color: #F59E0B; font-weight: 600; }
-    .card-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .card-vars-count { font-size: 0.78rem; color: #F59E0B; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem; }
+    .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.4rem; }
     .card-title a { color: var(--text-main); text-decoration: none; }
     .card-title a:hover { color: var(--accent-primary); }
-    .card-snippet { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem; flex: 1; }
-    .card-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.25rem; }
-    .tag-item { font-size: 0.75rem; color: #9CA3AF; background: rgba(255,255,255,0.04); padding: 0.2rem 0.5rem; border-radius: 4px; }
-    .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 1rem; }
-    .card-stats { display: flex; gap: 0.75rem; font-size: 0.8rem; color: var(--text-muted); }
-    .card-actions { display: flex; gap: 0.5rem; }
+    .card-snippet { font-size: 0.86rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.85rem; flex: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .card-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1rem; }
+    .tag-item { font-size: 0.72rem; color: #9CA3AF; background: rgba(255,255,255,0.04); padding: 0.15rem 0.45rem; border-radius: 4px; }
+    .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 0.85rem; }
+    .card-stats { display: flex; gap: 0.75rem; font-size: 0.78rem; color: var(--text-muted); }
+    .card-actions { display: flex; gap: 0.4rem; }
+
+    /* Pagination */
+    .pagination-wrapper { display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 2rem; }
+    .page-btn {
+      background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color);
+      padding: 0.45rem 0.9rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s ease;
+    }
+    .page-btn:hover:not(.disabled) { background: var(--accent-primary); color: white; border-color: var(--accent-primary); }
+    .page-btn.disabled { opacity: 0.4; pointer-events: none; }
+    .page-numbers { display: flex; gap: 0.25rem; align-items: center; }
+    .page-num {
+      width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+      background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-color);
+      border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none; transition: all 0.2s ease;
+    }
+    .page-num:hover, .page-num.active { background: var(--accent-primary); color: white; border-color: var(--accent-primary); }
+    .page-ellipsis { padding: 0 0.25rem; color: var(--text-muted); }
 
     /* Empty state */
-    .empty-state { text-align: center; padding: 4rem 1rem; background: var(--bg-card); border-radius: 16px; border: 1px dashed var(--border-color); }
-    .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-state { text-align: center; padding: 3rem 1rem; background: var(--bg-card); border-radius: 14px; border: 1px dashed var(--border-color); }
+    .empty-icon { font-size: 2.2rem; margin-bottom: 0.75rem; color: var(--text-muted); }
 
     /* Detail Page */
-    .detail-container { padding-top: 2rem; padding-bottom: 4rem; }
-    .detail-header-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 2rem; margin-bottom: 2rem; }
-    .detail-badges { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-    .detail-title { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.75rem; }
-    .detail-desc { font-size: 1.05rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem; }
-    .metrics-row { display: flex; gap: 1.5rem; font-size: 0.85rem; color: var(--text-muted); margin-top: 1rem; }
+    .detail-container { padding-top: 1.5rem; padding-bottom: 3.5rem; }
+    .detail-header-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .detail-badges { display: flex; gap: 0.4rem; margin-bottom: 0.75rem; }
+    .detail-title { font-size: 1.8rem; font-weight: 800; margin-bottom: 0.6rem; }
+    .detail-desc { font-size: 0.98rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.85rem; }
+    .metrics-row { display: flex; gap: 1.25rem; font-size: 0.82rem; color: var(--text-muted); margin-top: 0.85rem; }
 
-    .interactive-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 2rem; }
+    .interactive-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 1.5rem; }
     @media (max-width: 900px) { .interactive-grid { grid-template-columns: 1fr; } }
 
-    .panel { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 1.75rem; }
-    .panel-header { margin-bottom: 1.5rem; }
-    .panel-header h3 { font-size: 1.2rem; font-weight: 700; }
-    .panel-header p { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .panel { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; }
+    .panel-header { margin-bottom: 1.25rem; }
+    .panel-header h3 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 0.4rem; }
+    .panel-header p { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem; }
     .flex-between { display: flex; justify-content: space-between; align-items: center; }
 
     /* Form Fields */
-    .var-field { margin-bottom: 1.25rem; }
-    .var-field label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; }
-    .var-type { font-weight: normal; color: var(--text-muted); font-size: 0.75rem; }
+    .var-field { margin-bottom: 1rem; }
+    .var-field label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.3rem; }
+    .var-type { font-weight: normal; color: var(--text-muted); font-size: 0.72rem; }
     .var-input {
       width: 100%; background: var(--bg-input); border: 1px solid var(--border-color);
-      border-radius: 10px; padding: 0.65rem 0.85rem; color: white; font-size: 0.95rem; outline: none;
+      border-radius: 8px; padding: 0.55rem 0.75rem; color: white; font-size: 0.9rem; outline: none;
     }
     .var-input:focus { border-color: var(--accent-primary); }
 
     /* Output Box */
     .prompt-output-box {
-      background: #06080D; border: 1px solid var(--border-color); border-radius: 14px;
-      padding: 1.25rem; min-height: 250px; max-height: 450px; overflow-y: auto; margin-bottom: 1.5rem;
+      background: #06080D; border: 1px solid var(--border-color); border-radius: 12px;
+      padding: 1rem; min-height: 220px; max-height: 400px; overflow-y: auto; margin-bottom: 1.25rem;
     }
-    .prompt-output-box pre { white-space: pre-wrap; word-wrap: break-word; font-family: 'Fira Code', monospace, sans-serif; font-size: 0.95rem; line-height: 1.6; color: #E5E7EB; }
+    .prompt-output-box pre { white-space: pre-wrap; word-wrap: break-word; font-family: 'Fira Code', monospace, sans-serif; font-size: 0.9rem; line-height: 1.55; color: #E5E7EB; }
 
-    .action-buttons-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
-    @media (max-width: 600px) { .action-buttons-group { grid-template-columns: 1fr; } }
+    .action-buttons-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
 
     /* Modal */
     .modal-backdrop {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
       backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 1rem;
     }
     .modal-backdrop.active { display: flex; }
-    .modal-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; width: 100%; max-width: 600px; padding: 1.75rem; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
-    .close-btn { background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; }
-    .form-group { margin-bottom: 1rem; }
-    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; }
+    .modal-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; width: 100%; max-width: 550px; padding: 1.5rem; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .close-btn { background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; }
+    .form-group { margin-bottom: 0.85rem; }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.3rem; }
     .form-group input, .form-group select, .form-group textarea {
-      width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.6rem 0.8rem; color: white; outline: none;
+      width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.55rem 0.75rem; color: white; outline: none; font-size: 0.9rem;
     }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1.25rem; }
 
     /* Toast */
     .toast-message {
-      position: fixed; bottom: 2rem; right: 2rem; background: var(--bg-card); border: 1px solid var(--accent-primary);
-      padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; color: white;
+      position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--bg-card); border: 1px solid var(--accent-primary);
+      padding: 0.6rem 1.25rem; border-radius: 10px; font-weight: 600; color: white; font-size: 0.85rem;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5); opacity: 0; transform: translateY(20px); transition: all 0.3s ease; pointer-events: none; z-index: 2000;
     }
     .toast-message.show { opacity: 1; transform: translateY(0); }
 
     /* Footer */
-    .footer { border-top: 1px solid var(--border-color); padding: 2.5rem 0; color: var(--text-muted); font-size: 0.85rem; margin-top: auto; }
+    .footer { border-top: 1px solid var(--border-color); padding: 1.75rem 0; color: var(--text-muted); font-size: 0.82rem; margin-top: auto; }
     .footer-container { display: flex; justify-content: space-between; align-items: center; }
+
+    /* Responsive Mobile Adjustments */
+    @media (max-width: 640px) {
+      .hide-mobile { display: none; }
+      .hero-title { font-size: 1.75rem; }
+      .hero-subtitle { font-size: 0.9rem; margin-bottom: 1.25rem; }
+      .hero-section { padding: 1.75rem 0 1.25rem 0; }
+      .prompts-grid { grid-template-columns: 1fr; }
+      .search-input-box { padding: 0.25rem 0.35rem 0.25rem 0.75rem; }
+      .search-input-box input { font-size: 0.88rem; }
+      .btn-search { padding: 0.45rem 0.85rem; }
+      .footer-container { flex-direction: column; gap: 0.75rem; text-align: center; }
+      .action-buttons-group { grid-template-columns: 1fr; }
+      .page-num { width: 30px; height: 30px; font-size: 0.8rem; }
+    }
   `;
 }
 
@@ -708,6 +797,7 @@ function getClientScripts(baseUrl: string): string {
       const url = new URL(window.location.href);
       if (cat === 'all') url.searchParams.delete('category');
       else url.searchParams.set('category', cat);
+      url.searchParams.delete('page');
       window.location.href = url.toString();
     }
 
@@ -720,12 +810,14 @@ function getClientScripts(baseUrl: string): string {
       const url = new URL(window.location.href);
       if (q) url.searchParams.set('search', q);
       else url.searchParams.delete('search');
+      url.searchParams.delete('page');
       window.location.href = url.toString();
     }
 
     function changeSort(val) {
       const url = new URL(window.location.href);
       url.searchParams.set('sort', val);
+      url.searchParams.delete('page');
       window.location.href = url.toString();
     }
 
