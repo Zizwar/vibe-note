@@ -36,7 +36,7 @@ Deno.serve({ port: PORT }, async (req: Request) => {
     if (path === "/" && method === "GET") {
       const category = url.searchParams.get("category") || "all";
       const search = url.searchParams.get("search") || "";
-      const sort = url.searchParams.get("sort") || "latest";
+      const sort = url.searchParams.get("sort") || "random";
       const page = Number(url.searchParams.get("page")) || 1;
       const rawLimit = Number(url.searchParams.get("limit")) || 24;
       const limit = Math.min(Math.max(rawLimit, 1), 50);
@@ -120,7 +120,7 @@ Deno.serve({ port: PORT }, async (req: Request) => {
     if (path === "/api/prompts" && method === "GET") {
       const category = url.searchParams.get("category") || "all";
       const search = url.searchParams.get("search") || "";
-      const sort = url.searchParams.get("sort") || "latest";
+      const sort = url.searchParams.get("sort") || "random";
       const page = Number(url.searchParams.get("page")) || 1;
       const rawLimit = Number(url.searchParams.get("limit")) || 24;
       const limit = Math.min(Math.max(rawLimit, 1), 50);

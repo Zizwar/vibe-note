@@ -109,8 +109,9 @@ export function renderHomePage(
       <div class="section-header">
         <h2>Prompt Bank (${total.toLocaleString()})</h2>
         <div class="sort-wrapper">
-          <label for="sortSelect">Sort:</label>
+          <label for="sortSelect">View:</label>
           <select id="sortSelect" onchange="changeSort(this.value)">
+            <option value="random">Discover (Magazine Mix)</option>
             <option value="latest">Latest</option>
             <option value="popular">Popular</option>
           </select>

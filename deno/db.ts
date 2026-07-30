@@ -207,6 +207,9 @@ export async function getPublicPrompts(options?: {
   const page = Math.max(Number(options?.page) || 1, 1);
   const skip = (page - 1) * limit;
 
+  // Determine if we should show a diverse magazine random mix
+  const isRandomView = options?.sort === 'random' || !options?.sort;
+
   if (!useFallbackDb && mongoCollection) {
     try {
       const query: any = { isPublic: true };
@@ -221,12 +224,39 @@ export async function getPublicPrompts(options?: {
           { tags: { $regex: search, $options: 'i' } },
         ];
       }
-      const sortOption: any = options?.sort === 'popular' ? { copies: -1, views: -1 } : { createdAt: -1 };
       
       const total = await mongoCollection.countDocuments(query);
-      const prompts = await mongoCollection.find(query).sort(sortOption).skip(skip).limit(limit).toArray();
-      const totalPages = Math.ceil(total / limit) || 1;
+      let prompts: PromptDoc[] = [];
 
+      if (isRandomView) {
+        // Diverse Magazine Feed: Interleave equal samples from every category
+        const categories = ['code', 'image', 'writing', 'marketing', 'business', 'education', 'video', 'music', 'other'];
+        const perCat = Math.max(Math.floor(limit / categories.length), 3);
+
+        const categorySamples = await Promise.all(
+          categories.map(cat =>
+            mongoCollection!.aggregate<PromptDoc>([
+              { $match: { isPublic: true, category: cat } },
+              { $sample: { size: perCat } }
+            ]).toArray()
+          )
+        );
+
+        const mixed: PromptDoc[] = [];
+        const maxLen = Math.max(...categorySamples.map(a => a.length));
+        for (let i = 0; i < maxLen; i++) {
+          for (const group of categorySamples) {
+            if (group[i]) mixed.push(group[i]);
+          }
+        }
+
+        prompts = mixed.slice(0, limit);
+      } else {
+        const sortOption: any = options?.sort === 'popular' ? { copies: -1, views: -1 } : { createdAt: -1 };
+        prompts = await mongoCollection.find(query).sort(sortOption).skip(skip).limit(limit).toArray();
+      }
+
+      const totalPages = Math.ceil(total / limit) || 1;
       return { prompts, total, page, limit, totalPages };
     } catch (e) {
       console.error("MongoDB query error, falling back:", e);
@@ -248,7 +278,27 @@ export async function getPublicPrompts(options?: {
         p.tags.some(t => t.toLowerCase().includes(search))
       );
     }
-    if (options?.sort === 'popular') {
+
+    if (isRandomView) {
+      const categories = ['code', 'image', 'writing', 'marketing', 'business', 'education', 'video', 'music', 'other'];
+      const grouped: Record<string, PromptDoc[]> = {};
+      for (const cat of categories) grouped[cat] = [];
+      for (const p of list) {
+        const cat = p.category || 'other';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(p);
+      }
+      for (const cat of categories) {
+        grouped[cat].sort(() => Math.random() - 0.5);
+      }
+      const mixed: PromptDoc[] = [];
+      for (let i = 0; i < 50; i++) {
+        for (const cat of categories) {
+          if (grouped[cat][i]) mixed.push(grouped[cat][i]);
+        }
+      }
+      list = mixed;
+    } else if (options?.sort === 'popular') {
       list.sort((a, b) => (b.copies || 0) - (a.copies || 0));
     } else {
       list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -256,7 +306,7 @@ export async function getPublicPrompts(options?: {
 
     const total = list.length;
     const totalPages = Math.ceil(total / limit) || 1;
-    const paginated = list.slice(skip, skip + limit);
+    const paginated = isRandomView ? list.slice(0, limit) : list.slice(skip, skip + limit);
 
     return { prompts: paginated, total, page, limit, totalPages };
   } catch {
