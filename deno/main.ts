@@ -200,17 +200,19 @@ Deno.serve({ port: PORT }, async (req: Request) => {
 
       const formatType = (url.searchParams.get("type") || url.searchParams.get("format") || "").toLowerCase();
       const acceptHeader = (req.headers.get("accept") || "").toLowerCase();
+      const isBrowserNav = acceptHeader.includes("text/html") && !formatType;
 
-      // Format 1: Raw JSON
-      if (formatType === "json" || acceptHeader.includes("application/json")) {
-        return new Response(JSON.stringify(prompt, null, 2), {
-          headers: { "Content-Type": "application/json; charset=utf-8", ...corsHeaders },
-        });
-      }
+      if (!isBrowserNav) {
+        // Format 1: Raw JSON
+        if (formatType === "json" || acceptHeader.includes("application/json")) {
+          return new Response(JSON.stringify(prompt, null, 2), {
+            headers: { "Content-Type": "application/json; charset=utf-8", ...corsHeaders },
+          });
+        }
 
-      // Format 2: Raw Markdown
-      if (formatType === "md" || formatType === "markdown" || acceptHeader.includes("text/markdown")) {
-        const mdContent = `# ${prompt.title}
+        // Format 2: Raw Markdown
+        if (formatType === "md" || formatType === "markdown" || acceptHeader.includes("text/markdown")) {
+          const mdContent = `# ${prompt.title}
 
 > **Category**: ${prompt.category} | **Platform**: ${prompt.platform} | **Short ID**: ${prompt.shortId}
 > **Tags**: ${prompt.tags.join(', ')}
@@ -223,22 +225,22 @@ ${prompt.description || 'No description provided.'}
 ${prompt.content}
 \`\`\`
 `;
-        return new Response(mdContent, {
-          headers: { "Content-Type": "text/markdown; charset=utf-8", ...corsHeaders },
-        });
-      }
+          return new Response(mdContent, {
+            headers: { "Content-Type": "text/markdown; charset=utf-8", ...corsHeaders },
+          });
+        }
 
-      // Format 3: Dynamic SVG Card
-      if (formatType === "svg" || acceptHeader.includes("image/svg+xml")) {
-        const svgContent = generatePromptSvg(prompt);
-        return new Response(svgContent, {
-          headers: { "Content-Type": "image/svg+xml; charset=utf-8", ...corsHeaders },
-        });
-      }
+        // Format 3: Dynamic SVG Card
+        if (formatType === "svg" || acceptHeader.includes("image/svg+xml")) {
+          const svgContent = generatePromptSvg(prompt);
+          return new Response(svgContent, {
+            headers: { "Content-Type": "image/svg+xml; charset=utf-8", ...corsHeaders },
+          });
+        }
 
-      // Format 4: Raw XML
-      if (formatType === "xml" || acceptHeader.includes("application/xml") || acceptHeader.includes("text/xml")) {
-        const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+        // Format 4: Raw XML
+        if (formatType === "xml" || (acceptHeader.includes("application/xml") && !acceptHeader.includes("text/html"))) {
+          const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <vibenote_prompt id="${escapeXml(prompt.shortId)}">
   <title>${escapeXml(prompt.title)}</title>
   <category>${escapeXml(prompt.category)}</category>
@@ -254,9 +256,10 @@ ${prompt.content}
   <created_at>${prompt.createdAt}</created_at>
 </vibenote_prompt>`;
 
-        return new Response(xmlContent, {
-          headers: { "Content-Type": "application/xml; charset=utf-8", ...corsHeaders },
-        });
+          return new Response(xmlContent, {
+            headers: { "Content-Type": "application/xml; charset=utf-8", ...corsHeaders },
+          });
+        }
       }
 
       // Default: HTML Web Page
