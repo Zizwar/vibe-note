@@ -21,6 +21,7 @@ export interface PromptDoc {
   tags: string[];
   variables: VariableDefinition[];
   isPublic: boolean;
+  status?: 'approved' | 'pending' | 'rejected';
   views: number;
   copies: number;
   createdAt: string;
@@ -214,7 +215,7 @@ export async function getPublicPrompts(options?: {
 
   if (!useFallbackDb && mongoCollection) {
     try {
-      const query: any = { isPublic: true };
+      const query: any = { isPublic: true, status: { $ne: 'pending' } };
       if (category && category !== 'all') {
         query.category = category;
       }
@@ -271,7 +272,7 @@ export async function getPublicPrompts(options?: {
   // Fallback DB read
   try {
     let list = await loadLocalPrompts();
-    list = list.filter(p => p.isPublic !== false);
+    list = list.filter(p => p.isPublic !== false && p.status !== 'pending' && p.status !== 'rejected');
     if (category && category !== 'all') {
       list = list.filter(p => p.category === category);
     }
@@ -355,7 +356,8 @@ export async function savePrompt(promptData: Partial<PromptDoc>): Promise<Prompt
     platform: promptData.platform || "other",
     tags: Array.isArray(promptData.tags) ? promptData.tags : [],
     variables: Array.isArray(promptData.variables) ? promptData.variables : [],
-    isPublic: promptData.isPublic !== false,
+    isPublic: promptData.status ? promptData.status === 'approved' : (promptData.isPublic !== false),
+    status: promptData.status || (promptData.isPublic === false ? 'pending' : 'pending'),
     views: promptData.views || 0,
     copies: promptData.copies || 0,
     createdAt: promptData.createdAt || now,
@@ -423,4 +425,135 @@ function generateShortId(length = 6): string {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
+}
+
+export async function getAdminPendingPrompts(): Promise<PromptDoc[]> {
+  if (!useFallbackDb && mongoCollection) {
+    try {
+      return await mongoCollection.find({ status: 'pending' }).sort({ createdAt: -1 }).toArray();
+    } catch (e) {
+      console.error("MongoDB getAdminPendingPrompts error:", e);
+    }
+  }
+
+  try {
+    const list = await loadLocalPrompts();
+    return list.filter(p => p.status === 'pending');
+  } catch {
+    return [];
+  }
+}
+
+export async function getAdminAllPrompts(options?: {
+  status?: string;
+  category?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}): Promise<PaginatedPrompts> {
+  const status = options?.status;
+  const category = options?.category;
+  const search = options?.search?.toLowerCase();
+  const limit = Math.min(Math.max(Number(options?.limit) || 20, 1), 100);
+  const page = Math.max(Number(options?.page) || 1, 1);
+  const skip = (page - 1) * limit;
+
+  if (!useFallbackDb && mongoCollection) {
+    try {
+      const query: any = {};
+      if (status && status !== 'all') {
+        query.status = status;
+      }
+      if (category && category !== 'all') {
+        query.category = category;
+      }
+      if (search) {
+        query.$or = [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+          { content: { $regex: search, $options: 'i' } },
+          { shortId: { $regex: search, $options: 'i' } },
+        ];
+      }
+
+      const total = await mongoCollection.countDocuments(query);
+      const prompts = await mongoCollection.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray();
+      const totalPages = Math.ceil(total / limit) || 1;
+
+      return { prompts, total, page, limit, totalPages };
+    } catch (e) {
+      console.error("MongoDB getAdminAllPrompts error:", e);
+    }
+  }
+
+  // Fallback DB
+  try {
+    let list = await loadLocalPrompts();
+    if (status && status !== 'all') {
+      list = list.filter(p => p.status === status);
+    }
+    if (category && category !== 'all') {
+      list = list.filter(p => p.category === category);
+    }
+    if (search) {
+      list = list.filter(p =>
+        p.title.toLowerCase().includes(search) ||
+        p.content.toLowerCase().includes(search) ||
+        p.shortId.toLowerCase().includes(search)
+      );
+    }
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const total = list.length;
+    const totalPages = Math.ceil(total / limit) || 1;
+    const paginated = list.slice(skip, skip + limit);
+    return { prompts: paginated, total, page, limit, totalPages };
+  } catch {
+    return { prompts: [], total: 0, page: 1, limit: 20, totalPages: 1 };
+  }
+}
+
+export async function updatePromptStatus(shortId: string, status: 'approved' | 'pending' | 'rejected'): Promise<boolean> {
+  if (!useFallbackDb && mongoCollection) {
+    try {
+      const isPublic = status === 'approved';
+      await mongoCollection.updateOne({ shortId }, { $set: { status, isPublic, updatedAt: new Date().toISOString() } });
+      return true;
+    } catch (e) {
+      console.error("MongoDB updatePromptStatus error:", e);
+    }
+  }
+
+  try {
+    const raw = await Deno.readTextFile(LOCAL_DB_PATH);
+    let list: PromptDoc[] = JSON.parse(raw);
+    const p = list.find(x => x.shortId === shortId);
+    if (p) {
+      p.status = status;
+      p.isPublic = status === 'approved';
+      p.updatedAt = new Date().toISOString();
+      await Deno.writeTextFile(LOCAL_DB_PATH, JSON.stringify(list, null, 2));
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+export async function deletePrompt(shortId: string): Promise<boolean> {
+  if (!useFallbackDb && mongoCollection) {
+    try {
+      await mongoCollection.deleteOne({ shortId });
+      return true;
+    } catch (e) {
+      console.error("MongoDB deletePrompt error:", e);
+    }
+  }
+
+  try {
+    const raw = await Deno.readTextFile(LOCAL_DB_PATH);
+    let list: PromptDoc[] = JSON.parse(raw);
+    list = list.filter(p => p.shortId !== shortId);
+    await Deno.writeTextFile(LOCAL_DB_PATH, JSON.stringify(list, null, 2));
+    return true;
+  } catch {}
+  return false;
 }

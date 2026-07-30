@@ -1,5 +1,19 @@
-import { initDatabase, getPublicPrompts, getPromptByShortId, savePrompt, incrementStats, seedDatabase, PromptDoc } from "./db.ts";
+import {
+  initDatabase,
+  getPublicPrompts,
+  getPromptByShortId,
+  savePrompt,
+  incrementStats,
+  seedDatabase,
+  getAdminPendingPrompts,
+  getAdminAllPrompts,
+  updatePromptStatus,
+  deletePrompt,
+  PromptDoc
+} from "./db.ts";
 import { renderHomePage, renderPromptDetailPage } from "./views/renderHtml.ts";
+import { renderAdminLoginPage, renderAdminDashboardPage } from "./views/renderAdmin.ts";
+import { checkAdminPassword, createAdminSession, clearAdminSession, isAdminAuthenticated } from "./adminAuth.ts";
 import { extractVariables } from "./variableParser.ts";
 
 // Initialize database
@@ -21,7 +35,7 @@ Deno.serve({ port: PORT }, async (req: Request) => {
   // CORS Headers
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
 
@@ -50,9 +64,133 @@ Deno.serve({ port: PORT }, async (req: Request) => {
     }
 
     // -------------------------------------------------------------
-    // Route 2: Single Prompt Page /p/:shortId or /:shortId with format handlers
+    // Route 2: Admin Authentication & Dashboard
     // -------------------------------------------------------------
-    const isSinglePromptRoute = (path.startsWith("/p/") && method === "GET") || (/^\/[a-zA-Z0-9_-]{4,15}$/.test(path) && method === "GET" && !path.startsWith("/api"));
+    if (path === "/admin/login" && method === "GET") {
+      if (isAdminAuthenticated(req)) {
+        return Response.redirect(`${baseUrl}/admin`, 302);
+      }
+      const html = renderAdminLoginPage();
+      return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders } });
+    }
+
+    if (path === "/admin/login" && method === "POST") {
+      const formData = await req.formData().catch(() => null);
+      const password = formData?.get("password")?.toString() || "";
+
+      if (checkAdminPassword(password)) {
+        const { cookieHeader } = createAdminSession();
+        return new Response(null, {
+          status: 302,
+          headers: {
+            "Location": "/admin",
+            "Set-Cookie": cookieHeader,
+            ...corsHeaders,
+          },
+        });
+      }
+
+      const html = renderAdminLoginPage("Invalid password. Please try again.");
+      return new Response(html, { status: 401, headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders } });
+    }
+
+    if (path === "/admin/logout" && method === "GET") {
+      const clearCookie = clearAdminSession(req);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          "Location": "/admin/login",
+          "Set-Cookie": clearCookie,
+          ...corsHeaders,
+        },
+      });
+    }
+
+    if (path === "/admin" && method === "GET") {
+      if (!isAdminAuthenticated(req)) {
+        return Response.redirect(`${baseUrl}/admin/login`, 302);
+      }
+
+      const currentTab = url.searchParams.get("tab") || "pending";
+      const searchQuery = url.searchParams.get("search") || "";
+      const statusFilter = url.searchParams.get("status") || "all";
+      const categoryFilter = url.searchParams.get("category") || "all";
+      const page = Number(url.searchParams.get("page")) || 1;
+
+      const pendingPrompts = await getAdminPendingPrompts();
+      const allPrompts = await getAdminAllPrompts({ status: statusFilter, category: categoryFilter, search: searchQuery, page, limit: 20 });
+
+      const html = renderAdminDashboardPage({
+        pendingPrompts,
+        allPrompts,
+        currentTab,
+        searchQuery,
+        statusFilter,
+        categoryFilter,
+        page,
+      });
+
+      return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders } });
+    }
+
+    // Admin Action APIs
+    if (path.startsWith("/api/admin/approve/") && method === "POST") {
+      if (!isAdminAuthenticated(req)) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      }
+      const shortId = path.split("/")[4];
+      const success = await updatePromptStatus(shortId, "approved");
+      return new Response(JSON.stringify({ success }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    if (path.startsWith("/api/admin/unpublish/") && method === "POST") {
+      if (!isAdminAuthenticated(req)) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      }
+      const shortId = path.split("/")[4];
+      const success = await updatePromptStatus(shortId, "pending");
+      return new Response(JSON.stringify({ success }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    if (path.startsWith("/api/admin/delete/") && method === "DELETE") {
+      if (!isAdminAuthenticated(req)) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      }
+      const shortId = path.split("/")[4];
+      const success = await deletePrompt(shortId);
+      return new Response(JSON.stringify({ success }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
+    if (path === "/api/admin/create" && method === "POST") {
+      if (!isAdminAuthenticated(req)) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      }
+      const body = await req.json();
+      const content = body.content || "";
+      const variables = (Array.isArray(body.variables) && body.variables.length > 0) ? body.variables : extractVariables(content);
+
+      const saved = await savePrompt({
+        title: body.title || "Untitled Admin Prompt",
+        kind: body.kind || "prompt",
+        content: content,
+        description: body.description || "",
+        category: body.category || "other",
+        platform: body.platform || "chatgpt",
+        tags: Array.isArray(body.tags) ? body.tags : [],
+        variables: variables,
+        status: "approved",
+        isPublic: true,
+      });
+
+      return new Response(JSON.stringify({ success: true, prompt: saved }), {
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Route 3: Single Prompt Page /p/:shortId or /:shortId with format handlers
+    // -------------------------------------------------------------
+    const isSinglePromptRoute = (path.startsWith("/p/") && method === "GET") || (/^\/[a-zA-Z0-9_-]{4,15}$/.test(path) && method === "GET" && !path.startsWith("/api") && !path.startsWith("/admin"));
     if (isSinglePromptRoute) {
       const shortId = path.startsWith("/p/") ? path.split("/")[2] : path.slice(1);
       const prompt = await getPromptByShortId(shortId);
@@ -129,7 +267,7 @@ ${prompt.content}
     }
 
     // -------------------------------------------------------------
-    // Route 3: API Create / Share Prompt
+    // Route 4: API Create / Share Prompt
     // -------------------------------------------------------------
     if (path === "/api/prompts" && method === "POST") {
       const body = await req.json();
@@ -140,6 +278,7 @@ ${prompt.content}
         ? body.variables
         : extractVariables(content);
 
+      // Public submissions get status: 'pending' (requires admin review)
       const saved = await savePrompt({
         title: body.title || "Untitled Prompt",
         kind: body.kind || "prompt",
@@ -149,7 +288,8 @@ ${prompt.content}
         platform: body.platform || "chatgpt",
         tags: Array.isArray(body.tags) ? body.tags : [],
         variables: variables,
-        isPublic: body.isPublic !== false,
+        status: "pending",
+        isPublic: false,
       });
 
       const shortUrl = `${baseUrl}/p/${saved.shortId}`;
@@ -159,6 +299,7 @@ ${prompt.content}
           success: true,
           shortId: saved.shortId,
           shortUrl: shortUrl,
+          message: "Prompt submitted for admin review!",
           prompt: saved,
         }),
         {
@@ -168,7 +309,7 @@ ${prompt.content}
     }
 
     // -------------------------------------------------------------
-    // Route 4: API List Public Prompts
+    // Route 5: API List Public Prompts
     // -------------------------------------------------------------
     if (path === "/api/prompts" && method === "GET") {
       const category = url.searchParams.get("category") || "all";
@@ -186,7 +327,7 @@ ${prompt.content}
     }
 
     // -------------------------------------------------------------
-    // Route 5: API Get Single Prompt JSON
+    // Route 6: API Get Single Prompt JSON
     // -------------------------------------------------------------
     if (path.match(/^\/api\/prompts\/[a-zA-Z0-9_-]+$/) && method === "GET") {
       const shortId = path.split("/")[3];
@@ -203,7 +344,7 @@ ${prompt.content}
     }
 
     // -------------------------------------------------------------
-    // Route 6: Incremental Stats
+    // Route 7: Incremental Stats
     // -------------------------------------------------------------
     if (path.match(/^\/api\/prompts\/[a-zA-Z0-9_-]+\/stats$/) && method === "POST") {
       const shortId = path.split("/")[3];
@@ -216,7 +357,7 @@ ${prompt.content}
     }
 
     // -------------------------------------------------------------
-    // Route 7: Database Seeding Route (/api/seed)
+    // Route 8: Database Seeding Route (/api/seed)
     // -------------------------------------------------------------
     if (path === "/api/seed" && method === "GET") {
       const force = url.searchParams.get("force") === "true";
