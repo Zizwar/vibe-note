@@ -1,0 +1,1 @@
+import "./deno/main.ts";
