@@ -8,13 +8,14 @@ try {
   env = Deno.env.toObject();
 }
 
-const ADMIN_PASSWORD = env.ADMIN_PASSWORD || Deno.env.get("ADMIN_PASSWORD") || "vibenote2026admin";
+const ADMIN_PASSWORD = env.ADMIN_PASSWORD || Deno.env.get("ADMIN_PASSWORD") || "";
 
 // In-memory active admin sessions store: token -> timestamp
 const activeSessions = new Map<string, number>();
 const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 Hours
 
 export function checkAdminPassword(password: string): boolean {
+  if (!ADMIN_PASSWORD || !password) return false;
   return password === ADMIN_PASSWORD;
 }
 
