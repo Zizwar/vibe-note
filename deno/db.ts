@@ -557,3 +557,77 @@ export async function deletePrompt(shortId: string): Promise<boolean> {
   } catch {}
   return false;
 }
+
+export interface PromptMeta {
+  shortId: string;
+  title?: string;
+  category?: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getAllApprovedPromptMetas(): Promise<PromptMeta[]> {
+  if (!useFallbackDb && mongoCollection) {
+    try {
+      const docs = await mongoCollection
+        .find(
+          { isPublic: true, status: { $ne: 'pending' } },
+          { projection: { shortId: 1, title: 1, category: 1, description: 1, createdAt: 1, updatedAt: 1 } }
+        )
+        .sort({ createdAt: -1 })
+        .toArray();
+      return docs.map(d => ({
+        shortId: d.shortId,
+        title: d.title,
+        category: d.category,
+        description: d.description,
+        createdAt: d.createdAt || new Date().toISOString(),
+        updatedAt: d.updatedAt || d.createdAt || new Date().toISOString(),
+      }));
+    } catch (e) {
+      console.error("MongoDB getAllApprovedPromptMetas error:", e);
+    }
+  }
+
+  try {
+    const list = await loadLocalPrompts();
+    return list
+      .filter(p => p.isPublic !== false && p.status !== 'pending' && p.status !== 'rejected')
+      .map(p => ({
+        shortId: p.shortId,
+        title: p.title,
+        category: p.category,
+        description: p.description,
+        createdAt: p.createdAt || new Date().toISOString(),
+        updatedAt: p.updatedAt || p.createdAt || new Date().toISOString(),
+      }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getLatestApprovedPrompts(limit = 50): Promise<PromptDoc[]> {
+  if (!useFallbackDb && mongoCollection) {
+    try {
+      return await mongoCollection
+        .find({ isPublic: true, status: { $ne: 'pending' } })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .toArray();
+    } catch (e) {
+      console.error("MongoDB getLatestApprovedPrompts error:", e);
+    }
+  }
+
+  try {
+    const list = await loadLocalPrompts();
+    return list
+      .filter(p => p.isPublic !== false && p.status !== 'pending' && p.status !== 'rejected')
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+

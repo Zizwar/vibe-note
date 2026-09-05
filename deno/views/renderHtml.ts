@@ -25,20 +25,94 @@ export function renderHomePage(
   const cardsHtml = prompts.map(p => renderPromptCard(p, baseUrl)).join("");
   const paginationHtml = renderPaginationControls(page, totalPages, selectedCategory, searchQuery, selectedTag);
 
+  let pageTitle = "Vibe Note — AI Prompt Bank & Dynamic Variable Engine";
+  if (selectedCategory && selectedCategory !== 'all') {
+    pageTitle = `${selectedCategory.toUpperCase()} AI Prompts — Vibe Note Bank`;
+  } else if (selectedTag) {
+    pageTitle = `#${selectedTag} AI Prompts — Vibe Note Bank`;
+  } else if (searchQuery) {
+    pageTitle = `Search "${searchQuery}" AI Prompts — Vibe Note`;
+  }
+
+  const pageDesc = "Explore 10,000+ curated AI prompts with dynamic variables for ChatGPT, Midjourney, Claude, Gemini & Cursor. Test live and sync with mobile app.";
+  
+  let canonicalUrl = baseUrl;
+  if (selectedCategory && selectedCategory !== 'all') {
+    canonicalUrl = `${baseUrl}/?category=${encodeURIComponent(selectedCategory)}`;
+  } else if (selectedTag) {
+    canonicalUrl = `${baseUrl}/?tag=${encodeURIComponent(selectedTag)}`;
+  }
+
+  const schemaJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${baseUrl}/#website`,
+        "url": baseUrl,
+        "name": "Vibe Note",
+        "description": "Smart AI Prompt Bank & Dynamic Variable Engine",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": `${baseUrl}/?search={search_term_string}`
+          },
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "Organization",
+        "@id": `${baseUrl}/#organization`,
+        "name": "Vibe Note",
+        "url": baseUrl,
+        "logo": `${baseUrl}/favicon.ico`
+      },
+      {
+        "@type": "CollectionPage",
+        "@id": `${canonicalUrl}#webpage`,
+        "url": canonicalUrl,
+        "name": pageTitle,
+        "isPartOf": {
+          "@id": `${baseUrl}/#website`
+        },
+        "description": pageDesc,
+        "inLanguage": "en-US"
+      }
+    ]
+  };
+
   return `<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vibe Note — AI Prompt Bank & Variable Engine</title>
-  <meta name="description" content="Discover, test, and save curated AI prompts with dynamic variables.">
-  <meta name="keywords" content="AI prompts, prompt engineering, ChatGPT prompts, Midjourney prompts, Vibe Note">
-  
-  <!-- OpenGraph -->
-  <meta property="og:title" content="Vibe Note — AI Prompt Bank & Variable Engine">
-  <meta property="og:description" content="Discover, test, and save curated AI prompts with dynamic variables.">
+  <title>${escapeHtml(pageTitle)}</title>
+  <meta name="description" content="${escapeHtml(pageDesc)}">
+  <meta name="keywords" content="AI prompts, prompt engineering, ChatGPT prompts, Midjourney prompts, Claude prompts, Gemini prompts, AI prompt generator, Vibe Note">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="${canonicalUrl}">
+  <link rel="alternate" type="application/rss+xml" title="Vibe Note - Latest Prompts" href="${baseUrl}/feed.xml">
+  <link rel="sitemap" type="application/xml" title="Sitemap" href="${baseUrl}/sitemap.xml">
+
+  <!-- OpenGraph / Facebook -->
   <meta property="og:type" content="website">
-  <meta property="og:url" content="${baseUrl}">
+  <meta property="og:url" content="${canonicalUrl}">
+  <meta property="og:title" content="${escapeHtml(pageTitle)}">
+  <meta property="og:description" content="${escapeHtml(pageDesc)}">
+  <meta property="og:site_name" content="Vibe Note">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="${canonicalUrl}">
+  <meta name="twitter:title" content="${escapeHtml(pageTitle)}">
+  <meta name="twitter:description" content="${escapeHtml(pageDesc)}">
+
+  <!-- Schema.org JSON-LD Structured Data -->
+  <script type="application/ld+json">
+    ${JSON.stringify(schemaJsonLd)}
+  </script>
   
   <!-- Google Fonts & FontAwesome CDN -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -94,13 +168,13 @@ export function renderHomePage(
       </div>
     </section>
 
-    <!-- Category Filters -->
+    <!-- Category Filters (Crawlable <a> links for search engines) -->
     <section class="container categories-section">
       <div class="categories-scroll">
         ${categoryList.map(cat => `
-          <button class="cat-pill ${selectedCategory === cat.id ? 'active' : ''}" onclick="filterCategory('${cat.id}')">
+          <a href="${cat.id === 'all' ? '/' : `/?category=${cat.id}`}" class="cat-pill ${selectedCategory === cat.id ? 'active' : ''}">
             ${cat.label}
-          </button>
+          </a>
         `).join('')}
       </div>
     </section>
@@ -212,9 +286,11 @@ export function renderHomePage(
           <p>Smart AI Prompt Management System</p>
         </div>
         <div class="footer-links">
-          <a href="vibenote://">App Protocol: <code>vibenote://</code></a>
+          <a href="/feed.xml"><i class="fa-solid fa-rss"></i> RSS Feed</a>
           <span>•</span>
-          <span>vibenote.sbs</span>
+          <a href="/sitemap.xml"><i class="fa-solid fa-sitemap"></i> Sitemap</a>
+          <span>•</span>
+          <a href="vibenote://">App: <code>vibenote://</code></a>
         </div>
       </div>
     </footer>
@@ -235,15 +311,67 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://vib
   const svgUrl = `${shortUrl}?type=svg`;
   const appDeepLink = `vibenote://prompt/${prompt.shortId}?data=${encodeURIComponent(JSON.stringify(prompt))}`;
 
+  const promptTitle = `${prompt.title} — Vibe Note AI Prompt`;
+  const promptDescription = prompt.description || prompt.content.slice(0, 160);
+
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "SoftwareSourceCode",
-    "name": prompt.title,
-    "description": prompt.description || prompt.content.slice(0, 150),
-    "programmingLanguage": prompt.category,
-    "codeSampleType": "AI Prompt",
-    "url": shortUrl,
-    "dateCreated": prompt.createdAt,
+    "@graph": [
+      {
+        "@type": "SoftwareSourceCode",
+        "@id": `${shortUrl}#code`,
+        "name": prompt.title,
+        "description": promptDescription,
+        "programmingLanguage": prompt.category,
+        "codeSampleType": "AI Prompt Template",
+        "url": shortUrl,
+        "dateCreated": prompt.createdAt,
+        "dateModified": prompt.updatedAt || prompt.createdAt,
+        "author": {
+          "@type": "Organization",
+          "name": "Vibe Note",
+          "url": baseUrl
+        }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${shortUrl}#breadcrumb`,
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": baseUrl
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": prompt.category.toUpperCase(),
+            "item": `${baseUrl}/?category=${encodeURIComponent(prompt.category)}`
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": prompt.title,
+            "item": shortUrl
+          }
+        ]
+      },
+      {
+        "@type": "Article",
+        "@id": `${shortUrl}#article`,
+        "headline": prompt.title,
+        "description": promptDescription,
+        "mainEntityOfPage": shortUrl,
+        "datePublished": prompt.createdAt,
+        "dateModified": prompt.updatedAt || prompt.createdAt,
+        "publisher": {
+          "@type": "Organization",
+          "name": "Vibe Note",
+          "url": baseUrl
+        }
+      }
+    ]
   };
 
   return `<!DOCTYPE html>
@@ -251,15 +379,33 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://vib
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(prompt.title)} — Vibe Note AI Prompt</title>
-  <meta name="description" content="${escapeHtml(prompt.description || prompt.content.slice(0, 160))}">
-  <meta name="keywords" content="${prompt.tags.join(', ')}, ${prompt.category}, ${prompt.platform}, AI Prompt">
+  <title>${escapeHtml(promptTitle)}</title>
+  <meta name="description" content="${escapeHtml(promptDescription)}">
+  <meta name="keywords" content="${prompt.tags.join(', ')}, ${prompt.category}, ${prompt.platform}, AI Prompt, Vibe Note">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="${shortUrl}">
+  <link rel="alternate" type="application/json" href="${jsonUrl}">
+  <link rel="alternate" type="text/markdown" href="${mdUrl}">
 
   <!-- OpenGraph SEO -->
-  <meta property="og:title" content="${escapeHtml(prompt.title)}">
-  <meta property="og:description" content="${escapeHtml(prompt.description || prompt.content.slice(0, 160))}">
   <meta property="og:type" content="article">
   <meta property="og:url" content="${shortUrl}">
+  <meta property="og:title" content="${escapeHtml(prompt.title)} — Vibe Note">
+  <meta property="og:description" content="${escapeHtml(promptDescription)}">
+  <meta property="og:site_name" content="Vibe Note">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:image" content="${svgUrl}">
+  <meta property="og:image:type" content="image/svg+xml">
+  <meta property="og:image:width" content="800">
+  <meta property="og:image:height" content="450">
+  <meta property="og:image:alt" content="${escapeHtml(prompt.title)} AI Prompt Card">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="${shortUrl}">
+  <meta name="twitter:title" content="${escapeHtml(prompt.title)} — Vibe Note">
+  <meta name="twitter:description" content="${escapeHtml(promptDescription)}">
+  <meta name="twitter:image" content="${svgUrl}">
 
   <!-- Schema.org JSON-LD -->
   <script type="application/ld+json">
@@ -961,3 +1107,53 @@ function getClientScripts(baseUrl: string): string {
     }
   `;
 }
+
+export function render404Page(baseUrl = "https://vibenote.sbs"): string {
+  return `<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Page Not Found | Vibe Note</title>
+  <meta name="robots" content="noindex, follow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    ${getGlobalStyles()}
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <header class="navbar">
+      <div class="container nav-container">
+        <a href="/" class="brand-logo">
+          <div class="logo-icon"><i class="fa-solid fa-bolt"></i></div>
+          <span class="brand-name">Vibe<span class="gradient-text">Note</span></span>
+        </a>
+        <div class="nav-actions">
+          <a href="/" class="btn btn-primary btn-compact"><i class="fa-solid fa-house"></i> Home</a>
+        </div>
+      </div>
+    </header>
+    <main class="container text-center" style="padding: 100px 20px; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+      <div style="font-size: 5rem; font-weight: 800; color: var(--accent-primary); line-height: 1; margin-bottom: 1rem;">404</div>
+      <h1 style="font-size: 2rem; margin-bottom: 1rem; color: #fff;">Prompt or Page Not Found</h1>
+      <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto 2rem; font-size: 1.05rem;">
+        The prompt template or page you requested could not be located. Browse the full prompt collection below.
+      </p>
+      <a href="/" class="btn btn-primary btn-glow" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; font-size: 1rem;">
+        <i class="fa-solid fa-magnifying-glass"></i> Explore 10,000+ AI Prompts
+      </a>
+    </main>
+    <footer class="footer">
+      <div class="container text-center">
+        <p>VibeNote Smart Prompt Bank &copy; 2026 — vibenote.sbs</p>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>`;
+}
+

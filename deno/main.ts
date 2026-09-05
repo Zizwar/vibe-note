@@ -9,24 +9,42 @@ import {
   getAdminAllPrompts,
   updatePromptStatus,
   deletePrompt,
-  PromptDoc
+  getAllApprovedPromptMetas,
+  getLatestApprovedPrompts,
+  PromptDoc,
+  PromptMeta
 } from "./db.ts";
-import { renderHomePage, renderPromptDetailPage } from "./views/renderHtml.ts";
+import { renderHomePage, renderPromptDetailPage, render404Page } from "./views/renderHtml.ts";
 import { renderAdminLoginPage, renderAdminDashboardPage } from "./views/renderAdmin.ts";
 import { checkAdminPassword, createAdminSession, clearAdminSession, isAdminAuthenticated } from "./adminAuth.ts";
 import { extractVariables } from "./variableParser.ts";
+import {
+  generateRobotsTxt,
+  generateUnifiedSitemapXml,
+  generateMainSitemapXml,
+  generatePromptsSitemapXml,
+  generateSitemapIndexXml,
+  generateRssFeedXml
+} from "./seo.ts";
 
 // Initialize database
 await initDatabase();
 
 const PORT = Number(Deno.env.get("PORT") || 3333);
 
+// In-memory cache for SEO assets (reduces DB hits to near zero)
+let cachedUnifiedSitemap: { xml: string; timestamp: number } | null = null;
+let cachedMainSitemap: { xml: string; timestamp: number } | null = null;
+let cachedRssFeed: { xml: string; timestamp: number } | null = null;
+const SITEMAP_CACHE_TTL = 3600 * 1000; // 1 hour
+const RSS_CACHE_TTL = 900 * 1000;       // 15 minutes
+
 Deno.serve({ port: PORT }, async (req: Request) => {
   const url = new URL(req.url);
   const path = url.pathname;
   const method = req.method;
 
-  // Base URL for links
+  // Base URL for links & canonical tags
   const forwardedHost = req.headers.get("x-forwarded-host");
   const hostHeader = forwardedHost || req.headers.get("host") || "vibenote.sbs";
   const scheme = req.headers.get("x-forwarded-proto") || (hostHeader.includes("localhost") ? "http" : "https");
@@ -35,7 +53,7 @@ Deno.serve({ port: PORT }, async (req: Request) => {
   // CORS Headers
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, HEAD, POST, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
 
@@ -43,11 +61,132 @@ Deno.serve({ port: PORT }, async (req: Request) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const isGetOrHead = method === "GET" || method === "HEAD";
+
   try {
     // -------------------------------------------------------------
-    // Route 1: Home Page (Web Showcase with Tag Filtering)
+    // Route: robots.txt (Essential for Search Engine Crawlers)
     // -------------------------------------------------------------
-    if (path === "/" && method === "GET") {
+    if (path === "/robots.txt" && isGetOrHead) {
+      const robotsTxt = generateRobotsTxt(baseUrl);
+      return new Response(method === "HEAD" ? null : robotsTxt, {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "public, max-age=86400",
+          ...corsHeaders,
+        },
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Route: sitemap.xml & sitemap-index.xml (SEO Sitemap)
+    // -------------------------------------------------------------
+    if ((path === "/sitemap.xml" || path === "/sitemap-unified.xml") && isGetOrHead) {
+      const now = Date.now();
+      let sitemapXml = "";
+      if (cachedUnifiedSitemap && now - cachedUnifiedSitemap.timestamp < SITEMAP_CACHE_TTL) {
+        sitemapXml = cachedUnifiedSitemap.xml;
+      } else {
+        const promptMetas = await getAllApprovedPromptMetas();
+        sitemapXml = generateUnifiedSitemapXml(promptMetas, baseUrl);
+        cachedUnifiedSitemap = { xml: sitemapXml, timestamp: now };
+      }
+
+      return new Response(method === "HEAD" ? null : sitemapXml, {
+        headers: {
+          "Content-Type": "application/xml; charset=utf-8",
+          "Cache-Control": "public, max-age=3600, s-maxage=3600",
+          ...corsHeaders,
+        },
+      });
+    }
+
+    if (path === "/sitemap-index.xml" && isGetOrHead) {
+      const promptMetas = await getAllApprovedPromptMetas();
+      const indexXml = generateSitemapIndexXml(baseUrl, promptMetas.length, 5000);
+      return new Response(method === "HEAD" ? null : indexXml, {
+        headers: {
+          "Content-Type": "application/xml; charset=utf-8",
+          "Cache-Control": "public, max-age=3600",
+          ...corsHeaders,
+        },
+      });
+    }
+
+    if (path === "/sitemap-main.xml" && isGetOrHead) {
+      const now = Date.now();
+      let mainXml = "";
+      if (cachedMainSitemap && now - cachedMainSitemap.timestamp < SITEMAP_CACHE_TTL) {
+        mainXml = cachedMainSitemap.xml;
+      } else {
+        mainXml = generateMainSitemapXml(baseUrl);
+        cachedMainSitemap = { xml: mainXml, timestamp: now };
+      }
+
+      return new Response(method === "HEAD" ? null : mainXml, {
+        headers: {
+          "Content-Type": "application/xml; charset=utf-8",
+          "Cache-Control": "public, max-age=3600",
+          ...corsHeaders,
+        },
+      });
+    }
+
+    if ((path === "/sitemap-prompts.xml" || path.startsWith("/sitemap-prompts-")) && isGetOrHead) {
+      const pageMatch = path.match(/\/sitemap-prompts-(\d+)\.xml/);
+      const pageNum = pageMatch ? parseInt(pageMatch[1], 10) : 1;
+      const chunkSize = 5000;
+      const promptMetas = await getAllApprovedPromptMetas();
+      const startIndex = (pageNum - 1) * chunkSize;
+      const chunk = promptMetas.slice(startIndex, startIndex + chunkSize);
+
+      const xml = generatePromptsSitemapXml(chunk, baseUrl);
+      return new Response(method === "HEAD" ? null : xml, {
+        headers: {
+          "Content-Type": "application/xml; charset=utf-8",
+          "Cache-Control": "public, max-age=3600",
+          ...corsHeaders,
+        },
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Route: RSS / Atom Feed (/feed.xml, /rss.xml)
+    // -------------------------------------------------------------
+    if ((path === "/feed.xml" || path === "/rss.xml" || path === "/feed") && isGetOrHead) {
+      const now = Date.now();
+      let rssXml = "";
+      if (cachedRssFeed && now - cachedRssFeed.timestamp < RSS_CACHE_TTL) {
+        rssXml = cachedRssFeed.xml;
+      } else {
+        const latestPrompts = await getLatestApprovedPrompts(50);
+        rssXml = generateRssFeedXml(latestPrompts, baseUrl);
+        cachedRssFeed = { xml: rssXml, timestamp: now };
+      }
+
+      return new Response(method === "HEAD" ? null : rssXml, {
+        headers: {
+          "Content-Type": "application/rss+xml; charset=utf-8",
+          "Cache-Control": "public, max-age=900",
+          ...corsHeaders,
+        },
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Route: Favicon
+    // -------------------------------------------------------------
+    if (path === "/favicon.ico" && isGetOrHead) {
+      const svgFavicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="#8B5CF6"/><text x="50" y="68" font-size="50" text-anchor="middle" fill="#fff" font-family="sans-serif">⚡</text></svg>`;
+      return new Response(method === "HEAD" ? null : svgFavicon, {
+        headers: { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400", ...corsHeaders },
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Route 1: Home Page (Web Showcase with Tag & Category Filtering)
+    // -------------------------------------------------------------
+    if (path === "/" && isGetOrHead) {
       const category = url.searchParams.get("category") || "all";
       const search = url.searchParams.get("search") || "";
       const tag = url.searchParams.get("tag") || "";
@@ -58,8 +197,12 @@ Deno.serve({ port: PORT }, async (req: Request) => {
 
       const paginatedData = await getPublicPrompts({ category, search, tag, sort, page, limit });
       const html = renderHomePage(paginatedData, category, search, tag, baseUrl);
-      return new Response(html, {
-        headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+      return new Response(method === "HEAD" ? null : html, {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "public, max-age=60, s-maxage=120",
+          ...corsHeaders
+        },
       });
     }
 
@@ -140,6 +283,9 @@ Deno.serve({ port: PORT }, async (req: Request) => {
       }
       const shortId = path.split("/")[4];
       const success = await updatePromptStatus(shortId, "approved");
+      // Invalidate sitemap cache
+      cachedUnifiedSitemap = null;
+      cachedRssFeed = null;
       return new Response(JSON.stringify({ success }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
@@ -149,6 +295,7 @@ Deno.serve({ port: PORT }, async (req: Request) => {
       }
       const shortId = path.split("/")[4];
       const success = await updatePromptStatus(shortId, "pending");
+      cachedUnifiedSitemap = null;
       return new Response(JSON.stringify({ success }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
@@ -158,6 +305,7 @@ Deno.serve({ port: PORT }, async (req: Request) => {
       }
       const shortId = path.split("/")[4];
       const success = await deletePrompt(shortId);
+      cachedUnifiedSitemap = null;
       return new Response(JSON.stringify({ success }), { headers: { "Content-Type": "application/json", ...corsHeaders } });
     }
 
@@ -182,6 +330,9 @@ Deno.serve({ port: PORT }, async (req: Request) => {
         isPublic: true,
       });
 
+      cachedUnifiedSitemap = null;
+      cachedRssFeed = null;
+
       return new Response(JSON.stringify({ success: true, prompt: saved }), {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
@@ -190,12 +341,20 @@ Deno.serve({ port: PORT }, async (req: Request) => {
     // -------------------------------------------------------------
     // Route 3: Single Prompt Page /p/:shortId or /:shortId with format handlers
     // -------------------------------------------------------------
-    const isSinglePromptRoute = (path.startsWith("/p/") && method === "GET") || (/^\/[a-zA-Z0-9_-]{4,15}$/.test(path) && method === "GET" && !path.startsWith("/api") && !path.startsWith("/admin"));
+    const isSinglePromptRoute = (path.startsWith("/p/") && isGetOrHead) || (/^\/[a-zA-Z0-9_-]{4,15}$/.test(path) && isGetOrHead && !path.startsWith("/api") && !path.startsWith("/admin") && path !== "/robots.txt" && path !== "/favicon.ico" && path !== "/feed.xml" && path !== "/rss.xml" && !path.startsWith("/sitemap"));
     if (isSinglePromptRoute) {
       const shortId = path.startsWith("/p/") ? path.split("/")[2] : path.slice(1);
       const prompt = await getPromptByShortId(shortId);
       if (!prompt) {
-        return new Response("Prompt not found", { status: 404 });
+        const acceptHeader = (req.headers.get("accept") || "").toLowerCase();
+        if (acceptHeader.includes("text/html")) {
+          const notFoundHtml = render404Page(baseUrl);
+          return new Response(method === "HEAD" ? null : notFoundHtml, {
+            status: 404,
+            headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          });
+        }
+        return new Response("Prompt not found", { status: 404, headers: corsHeaders });
       }
 
       const formatType = (url.searchParams.get("type") || url.searchParams.get("format") || "").toLowerCase();
@@ -205,7 +364,7 @@ Deno.serve({ port: PORT }, async (req: Request) => {
       if (!isBrowserNav) {
         // Format 1: Raw JSON
         if (formatType === "json" || acceptHeader.includes("application/json")) {
-          return new Response(JSON.stringify(prompt, null, 2), {
+          return new Response(method === "HEAD" ? null : JSON.stringify(prompt, null, 2), {
             headers: { "Content-Type": "application/json; charset=utf-8", ...corsHeaders },
           });
         }
@@ -225,7 +384,7 @@ ${prompt.description || 'No description provided.'}
 ${prompt.content}
 \`\`\`
 `;
-          return new Response(mdContent, {
+          return new Response(method === "HEAD" ? null : mdContent, {
             headers: { "Content-Type": "text/markdown; charset=utf-8", ...corsHeaders },
           });
         }
@@ -233,8 +392,12 @@ ${prompt.content}
         // Format 3: Dynamic SVG Card
         if (formatType === "svg" || acceptHeader.includes("image/svg+xml")) {
           const svgContent = generatePromptSvg(prompt);
-          return new Response(svgContent, {
-            headers: { "Content-Type": "image/svg+xml; charset=utf-8", ...corsHeaders },
+          return new Response(method === "HEAD" ? null : svgContent, {
+            headers: {
+              "Content-Type": "image/svg+xml; charset=utf-8",
+              "Cache-Control": "public, max-age=86400",
+              ...corsHeaders,
+            },
           });
         }
 
@@ -256,7 +419,7 @@ ${prompt.content}
   <created_at>${prompt.createdAt}</created_at>
 </vibenote_prompt>`;
 
-          return new Response(xmlContent, {
+          return new Response(method === "HEAD" ? null : xmlContent, {
             headers: { "Content-Type": "application/xml; charset=utf-8", ...corsHeaders },
           });
         }
@@ -264,8 +427,12 @@ ${prompt.content}
 
       // Default: HTML Web Page
       const html = renderPromptDetailPage(prompt, baseUrl);
-      return new Response(html, {
-        headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+      return new Response(method === "HEAD" ? null : html, {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "public, max-age=300, s-maxage=600",
+          ...corsHeaders,
+        },
       });
     }
 
@@ -314,7 +481,7 @@ ${prompt.content}
     // -------------------------------------------------------------
     // Route 5: API List Public Prompts
     // -------------------------------------------------------------
-    if (path === "/api/prompts" && method === "GET") {
+    if (path === "/api/prompts" && isGetOrHead) {
       const category = url.searchParams.get("category") || "all";
       const search = url.searchParams.get("search") || "";
       const tag = url.searchParams.get("tag") || "";
@@ -324,7 +491,7 @@ ${prompt.content}
       const limit = Math.min(Math.max(rawLimit, 1), 50);
 
       const result = await getPublicPrompts({ category, search, tag, sort, page, limit });
-      return new Response(JSON.stringify(result), {
+      return new Response(method === "HEAD" ? null : JSON.stringify(result), {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
@@ -332,7 +499,7 @@ ${prompt.content}
     // -------------------------------------------------------------
     // Route 6: API Get Single Prompt JSON
     // -------------------------------------------------------------
-    if (path.match(/^\/api\/prompts\/[a-zA-Z0-9_-]+$/) && method === "GET") {
+    if (path.match(/^\/api\/prompts\/[a-zA-Z0-9_-]+$/) && isGetOrHead) {
       const shortId = path.split("/")[3];
       const prompt = await getPromptByShortId(shortId);
       if (!prompt) {
@@ -341,7 +508,7 @@ ${prompt.content}
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
-      return new Response(JSON.stringify(prompt), {
+      return new Response(method === "HEAD" ? null : JSON.stringify(prompt), {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
@@ -362,17 +529,27 @@ ${prompt.content}
     // -------------------------------------------------------------
     // Route 8: Database Seeding Route (/api/seed)
     // -------------------------------------------------------------
-    if (path === "/api/seed" && method === "GET") {
+    if (path === "/api/seed" && isGetOrHead) {
       const force = url.searchParams.get("force") === "true";
       const result = await seedDatabase(force);
-      return new Response(JSON.stringify({ success: true, ...result }), {
+      cachedUnifiedSitemap = null;
+      return new Response(method === "HEAD" ? null : JSON.stringify({ success: true, ...result }), {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
     // -------------------------------------------------------------
-    // 404 Not Found
+    // 404 Not Found Handling
     // -------------------------------------------------------------
+    const acceptHeader = (req.headers.get("accept") || "").toLowerCase();
+    if (acceptHeader.includes("text/html")) {
+      const html404 = render404Page(baseUrl);
+      return new Response(method === "HEAD" ? null : html404, {
+        status: 404,
+        headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+      });
+    }
+
     return new Response("Not Found", { status: 404, headers: corsHeaders });
   } catch (error: any) {
     console.error("Server Error:", error);
