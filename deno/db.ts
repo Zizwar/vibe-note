@@ -1,4 +1,4 @@
-import { MongoClient, Collection } from "mongodb";
+import { MongoClient, Collection } from "npm:mongodb@^6.8.0";
 import { parse } from "https://deno.land/std@0.224.0/dotenv/mod.ts";
 
 export interface VariableDefinition {
@@ -249,7 +249,7 @@ export async function getPublicPrompts(options?: {
         );
 
         const mixed: PromptDoc[] = [];
-        const maxLen = Math.max(...categorySamples.map(a => a.length));
+        const maxLen = Math.max(...categorySamples.map((a: PromptDoc[]) => a.length));
         for (let i = 0; i < maxLen; i++) {
           for (const group of categorySamples) {
             if (group[i]) mixed.push(group[i]);
@@ -577,7 +577,7 @@ export async function getAllApprovedPromptMetas(): Promise<PromptMeta[]> {
         )
         .sort({ createdAt: -1 })
         .toArray();
-      return docs.map(d => ({
+      return docs.map((d: any) => ({
         shortId: d.shortId,
         title: d.title,
         category: d.category,

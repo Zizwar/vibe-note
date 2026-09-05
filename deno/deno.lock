@@ -3,6 +3,7 @@
   "specifiers": {
     "npm:dotenv@^17.4.2": "17.4.2",
     "npm:mongodb@6.8.0": "6.8.0",
+    "npm:mongodb@^6.8.0": "6.8.0",
     "npm:mongodb@^7.5.0": "7.5.0"
   },
   "npm": {
