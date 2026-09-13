@@ -308,7 +308,12 @@ export function renderHomePage(
 </html>`;
 }
 
-export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://vibenote.sbs", isAdmin = false): string {
+export function renderPromptDetailPage(
+  prompt: PromptDoc,
+  baseUrl = "https://vibenote.sbs",
+  isAdmin = false,
+  openEditOnLoad = false
+): string {
   const shortUrl = `${baseUrl}/p/${prompt.shortId}`;
   const jsonUrl = `${shortUrl}?type=json`;
   const mdUrl = `${shortUrl}?type=md`;
@@ -452,11 +457,9 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://vib
           <span class="brand-name">Vibe<span class="gradient-text">Note</span></span>
         </a>
         <div class="nav-actions">
-          ${isAdmin ? `
-            <button class="btn btn-warning btn-compact" onclick="openEditModal()">
-              <i class="fa-solid fa-pen-to-square"></i> <span class="hide-mobile">Edit</span>
-            </button>
-          ` : ''}
+          <button class="btn btn-warning btn-compact" onclick="handleEditPromptClick()" title="Edit Prompt">
+            <i class="fa-solid fa-pen-to-square"></i> <span class="hide-mobile">Edit</span>
+          </button>
           <a href="/" class="btn btn-secondary btn-compact"><i class="fa-solid fa-arrow-left"></i> <span class="hide-mobile">Bank</span></a>
           <a href="${appDeepLink}" class="btn btn-primary btn-glow btn-compact">
             <i class="fa-solid fa-mobile-screen-button"></i> <span class="hide-mobile">App</span>
@@ -497,11 +500,9 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://vib
           <span class="badge cat-badge">${escapeHtml(prompt.category.toUpperCase())}</span>
           <span class="badge platform-badge">${escapeHtml(prompt.platform.toUpperCase())}</span>
           <span class="badge id-badge">ID: ${prompt.shortId}</span>
-          ${isAdmin ? `
-            <button class="btn btn-warning btn-small" onclick="openEditModal()" style="margin-left: auto;">
-              <i class="fa-solid fa-pen-to-square"></i> Edit Prompt
-            </button>
-          ` : ''}
+          <button class="btn btn-warning btn-small" onclick="handleEditPromptClick()" style="margin-left: auto;" title="Edit this prompt">
+            <i class="fa-solid fa-pen-to-square"></i> Edit Prompt
+          </button>
         </div>
         <h1 class="detail-title">${escapeHtml(prompt.title)}</h1>
         ${prompt.description ? `<p class="detail-desc">${escapeHtml(prompt.description)}</p>` : ''}
@@ -678,123 +679,149 @@ console.log(prompt.title, prompt.content);</pre>
       </div>
     </div>
 
-    ${isAdmin ? `
-      <!-- Admin Edit Prompt Modal -->
-      <div id="editPromptModal" class="modal-backdrop" style="display: none;" onclick="handleEditBackdropClick(event)">
-        <div class="modal-window modal-wide" onclick="event.stopPropagation()">
-          <div class="modal-header">
-            <h3><i class="fa-solid fa-pen-to-square"></i> Edit Prompt (${prompt.shortId})</h3>
-            <button type="button" class="modal-close" onclick="closeEditModal()">&times;</button>
-          </div>
-          <div class="modal-body">
-            <form id="editPromptForm" onsubmit="handleEditPromptSubmit(event)">
-              <div class="form-group">
-                <label>Title</label>
-                <input type="text" id="editTitle" required class="form-input" value="${escapeHtml(prompt.title)}" />
-              </div>
-
-              <div class="form-row">
-                <div class="form-group half">
-                  <label>Category</label>
-                  <select id="editCategory" class="form-select">
-                    <option value="all">All</option>
-                    <option value="code" ${prompt.category === 'code' ? 'selected' : ''}>Code</option>
-                    <option value="image" ${prompt.category === 'image' ? 'selected' : ''}>Art & Image</option>
-                    <option value="writing" ${prompt.category === 'writing' ? 'selected' : ''}>Writing</option>
-                    <option value="marketing" ${prompt.category === 'marketing' ? 'selected' : ''}>Marketing</option>
-                    <option value="business" ${prompt.category === 'business' ? 'selected' : ''}>Business</option>
-                    <option value="education" ${prompt.category === 'education' ? 'selected' : ''}>Education</option>
-                    <option value="video" ${prompt.category === 'video' ? 'selected' : ''}>Video</option>
-                    <option value="music" ${prompt.category === 'music' ? 'selected' : ''}>Music</option>
-                    <option value="other" ${prompt.category === 'other' ? 'selected' : ''}>Other</option>
-                  </select>
-                </div>
-
-                <div class="form-group half">
-                  <label>Platform</label>
-                  <select id="editPlatform" class="form-select">
-                    <option value="chatgpt" ${prompt.platform === 'chatgpt' ? 'selected' : ''}>ChatGPT</option>
-                    <option value="midjourney" ${prompt.platform === 'midjourney' ? 'selected' : ''}>Midjourney</option>
-                    <option value="claude" ${prompt.platform === 'claude' ? 'selected' : ''}>Claude</option>
-                    <option value="gemini" ${prompt.platform === 'gemini' ? 'selected' : ''}>Gemini</option>
-                    <option value="cursor" ${prompt.platform === 'cursor' ? 'selected' : ''}>Cursor</option>
-                    <option value="general" ${prompt.platform === 'general' ? 'selected' : ''}>General</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group half">
-                  <label>Status</label>
-                  <select id="editStatus" class="form-select">
-                    <option value="approved" ${prompt.status === 'approved' ? 'selected' : ''}>Approved (Published)</option>
-                    <option value="pending" ${prompt.status === 'pending' ? 'selected' : ''}>Pending (Review Queue)</option>
-                  </select>
-                </div>
-
-                <div class="form-group half">
-                  <label>Visibility</label>
-                  <select id="editVisibility" class="form-select">
-                    <option value="public" ${prompt.visibility !== 'private' ? 'selected' : ''}>Public (Listed)</option>
-                    <option value="private" ${prompt.visibility === 'private' ? 'selected' : ''}>Private (Hidden)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label>Description</label>
-                <textarea id="editDescription" rows="2" class="form-textarea">${escapeHtml(prompt.description || '')}</textarea>
-              </div>
-
-              <div class="form-group">
-                <label>Prompt Template Content</label>
-                <textarea id="editContent" rows="6" required class="form-textarea code-font">${escapeHtml(prompt.content)}</textarea>
-                <small class="form-hint">Use <code>{{variable_name}}</code> for dynamic variables.</small>
-              </div>
-
-              <div class="form-group">
-                <label>Tags (Comma-separated)</label>
-                <input type="text" id="editTags" class="form-input" value="${escapeHtml(prompt.tags.join(', '))}" />
-              </div>
-
-              <!-- Image Management Section -->
-              <div class="images-manager-card">
-                <div class="images-manager-header">
-                  <h4><i class="fa-solid fa-photo-film"></i> Prompt Images & Gallery</h4>
-                  <small>Upload images to Cloudflare R2 or add image URLs. Supports multiple images per prompt.</small>
-                </div>
-
-                <div id="editImagesList" class="edit-images-list"></div>
-
-                <div class="image-add-controls">
-                  <div class="add-url-row">
-                    <input type="url" id="newImageUrlInput" placeholder="https://example.com/image.png" class="form-input" />
-                    <button type="button" class="btn btn-secondary" onclick="addImageFromUrl()"><i class="fa-solid fa-link"></i> Add URL</button>
-                  </div>
-
-                  <div class="upload-r2-dropzone" onclick="document.getElementById('r2FileInput').click()">
-                    <input type="file" id="r2FileInput" accept="image/*" style="display:none" onchange="uploadFileToR2(this)" />
-                    <i class="fa-solid fa-cloud-arrow-up dropzone-icon"></i>
-                    <div class="dropzone-text">
-                      <strong>Click to upload image to Cloudflare R2</strong>
-                      <span>Supports JPG, PNG, WEBP, GIF, SVG (Up to 10MB)</span>
-                    </div>
-                    <div id="uploadSpinner" class="upload-spinner" style="display: none;">
-                      <i class="fa-solid fa-spinner fa-spin"></i> Uploading to Cloudflare R2...
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="modal-footer" style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px;">
-                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
-                <button type="submit" id="saveEditBtn" class="btn btn-primary btn-glow"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
-              </div>
-            </form>
-          </div>
+    <!-- Admin Authentication Modal (Opens when unauthenticated user clicks Edit) -->
+    <div id="adminAuthModal" class="modal-backdrop" style="display: none;" onclick="handleAuthBackdropClick(event)">
+      <div class="modal-window modal-auth" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-lock" style="color: #fbbf24;"></i> Admin Authentication</h3>
+          <button type="button" class="modal-close" onclick="closeAuthModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 1rem;">
+            Please enter your admin password to edit this prompt, update details, and upload images.
+          </p>
+          <div id="authErrorAlert" class="alert alert-error" style="display: none; margin-bottom: 1rem;"></div>
+          <form id="authPromptForm" onsubmit="handleAuthSubmit(event)">
+            <div class="form-group">
+              <label for="adminAuthPassword"><i class="fa-solid fa-key"></i> Master Password</label>
+              <input type="password" id="adminAuthPassword" required placeholder="••••••••••••" class="form-input" autofocus />
+            </div>
+            <div class="modal-footer" style="margin-top: 1rem; display: flex; justify-content: flex-end; gap: 8px;">
+              <button type="button" class="btn btn-secondary" onclick="closeAuthModal()">Cancel</button>
+              <button type="submit" id="authSubmitBtn" class="btn btn-primary btn-glow">
+                <i class="fa-solid fa-unlock"></i> Unlock & Edit
+              </button>
+            </div>
+          </form>
         </div>
       </div>
-    ` : ''}
+    </div>
+
+    <!-- Admin Edit Prompt Modal -->
+    <div id="editPromptModal" class="modal-backdrop" style="display: none;" onclick="handleEditBackdropClick(event)">
+      <div class="modal-window modal-wide" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-pen-to-square"></i> Edit Prompt (${prompt.shortId})</h3>
+          <button type="button" class="modal-close" onclick="closeEditModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="editPromptForm" onsubmit="handleEditPromptSubmit(event)">
+            <div class="form-group">
+              <label>Title</label>
+              <input type="text" id="editTitle" required class="form-input" value="${escapeHtml(prompt.title)}" />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group half">
+                <label>Category</label>
+                <select id="editCategory" class="form-select">
+                  <option value="all">All</option>
+                  <option value="code" ${prompt.category === 'code' ? 'selected' : ''}>Code</option>
+                  <option value="image" ${prompt.category === 'image' ? 'selected' : ''}>Art & Image</option>
+                  <option value="writing" ${prompt.category === 'writing' ? 'selected' : ''}>Writing</option>
+                  <option value="marketing" ${prompt.category === 'marketing' ? 'selected' : ''}>Marketing</option>
+                  <option value="business" ${prompt.category === 'business' ? 'selected' : ''}>Business</option>
+                  <option value="education" ${prompt.category === 'education' ? 'selected' : ''}>Education</option>
+                  <option value="video" ${prompt.category === 'video' ? 'selected' : ''}>Video</option>
+                  <option value="music" ${prompt.category === 'music' ? 'selected' : ''}>Music</option>
+                  <option value="other" ${prompt.category === 'other' ? 'selected' : ''}>Other</option>
+                </select>
+              </div>
+
+              <div class="form-group half">
+                <label>Platform</label>
+                <select id="editPlatform" class="form-select">
+                  <option value="chatgpt" ${prompt.platform === 'chatgpt' ? 'selected' : ''}>ChatGPT</option>
+                  <option value="midjourney" ${prompt.platform === 'midjourney' ? 'selected' : ''}>Midjourney</option>
+                  <option value="claude" ${prompt.platform === 'claude' ? 'selected' : ''}>Claude</option>
+                  <option value="gemini" ${prompt.platform === 'gemini' ? 'selected' : ''}>Gemini</option>
+                  <option value="cursor" ${prompt.platform === 'cursor' ? 'selected' : ''}>Cursor</option>
+                  <option value="general" ${prompt.platform === 'general' ? 'selected' : ''}>General</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group half">
+                <label>Status</label>
+                <select id="editStatus" class="form-select">
+                  <option value="approved" ${prompt.status === 'approved' ? 'selected' : ''}>Approved (Published)</option>
+                  <option value="pending" ${prompt.status === 'pending' ? 'selected' : ''}>Pending (Review Queue)</option>
+                </select>
+              </div>
+
+              <div class="form-group half">
+                <label>Visibility</label>
+                <select id="editVisibility" class="form-select">
+                  <option value="public" ${prompt.visibility !== 'private' ? 'selected' : ''}>Public (Listed)</option>
+                  <option value="private" ${prompt.visibility === 'private' ? 'selected' : ''}>Private (Hidden)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Description</label>
+              <textarea id="editDescription" rows="2" class="form-textarea">${escapeHtml(prompt.description || '')}</textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Prompt Template Content</label>
+              <textarea id="editContent" rows="6" required class="form-textarea code-font">${escapeHtml(prompt.content)}</textarea>
+              <small class="form-hint">Use <code>{{variable_name}}</code> for dynamic variables.</small>
+            </div>
+
+            <div class="form-group">
+              <label>Tags (Comma-separated)</label>
+              <input type="text" id="editTags" class="form-input" value="${escapeHtml(prompt.tags.join(', '))}" />
+            </div>
+
+            <!-- Image Management Section -->
+            <div class="images-manager-card">
+              <div class="images-manager-header">
+                <h4><i class="fa-solid fa-photo-film"></i> Prompt Images & Gallery</h4>
+                <small>Upload images to Cloudflare R2 or add image URLs. Supports multiple images per prompt.</small>
+              </div>
+
+              <div id="editImagesList" class="edit-images-list"></div>
+
+              <div class="image-add-controls">
+                <div class="add-url-row">
+                  <input type="url" id="newImageUrlInput" placeholder="https://example.com/image.png" class="form-input" />
+                  <button type="button" class="btn btn-secondary" onclick="addImageFromUrl()"><i class="fa-solid fa-link"></i> Add URL</button>
+                </div>
+
+                <div class="upload-r2-dropzone" onclick="document.getElementById('r2FileInput').click()">
+                  <input type="file" id="r2FileInput" accept="image/*" style="display:none" onchange="uploadFileToR2(this)" />
+                  <i class="fa-solid fa-cloud-arrow-up dropzone-icon"></i>
+                  <div class="dropzone-text">
+                    <strong>Click to upload image to Cloudflare R2</strong>
+                    <span>Supports JPG, PNG, WEBP, GIF, SVG (Up to 10MB)</span>
+                  </div>
+                  <div id="uploadSpinner" class="upload-spinner" style="display: none;">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Uploading to Cloudflare R2...
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer" style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px;">
+              <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+              <button type="submit" id="saveEditBtn" class="btn btn-primary btn-glow"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <!-- Toast Notification -->
     <div id="toast" class="toast-message"></div>
@@ -897,151 +924,223 @@ console.log(prompt.title, prompt.content);</pre>
       }
     });
 
-    ${isAdmin ? `
-      let editImages = ${JSON.stringify(promptImages)};
+    let userIsAdmin = ${Boolean(isAdmin)};
+    const openEditOnLoad = ${Boolean(openEditOnLoad)};
 
-      function openEditModal() {
-        const modal = document.getElementById("editPromptModal");
-        if (modal) modal.style.display = "flex";
-        renderEditImages();
+    function handleEditPromptClick() {
+      if (userIsAdmin) {
+        openEditModal();
+      } else {
+        openAuthModal();
       }
+    }
 
-      function closeEditModal() {
-        const modal = document.getElementById("editPromptModal");
-        if (modal) modal.style.display = "none";
+    function openAuthModal() {
+      const modal = document.getElementById("adminAuthModal");
+      const err = document.getElementById("authErrorAlert");
+      const pwd = document.getElementById("adminAuthPassword");
+      if (err) err.style.display = "none";
+      if (pwd) pwd.value = "";
+      if (modal) modal.style.display = "flex";
+      setTimeout(() => pwd?.focus(), 150);
+    }
+
+    function closeAuthModal() {
+      const modal = document.getElementById("adminAuthModal");
+      if (modal) modal.style.display = "none";
+    }
+
+    function handleAuthBackdropClick(e) {
+      if (e.target.id === "adminAuthModal") closeAuthModal();
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const pwd = document.getElementById("adminAuthPassword").value;
+      const btn = document.getElementById("authSubmitBtn");
+      const err = document.getElementById("authErrorAlert");
+      const origHtml = btn ? btn.innerHTML : "";
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
       }
+      if (err) err.style.display = "none";
 
-      function handleEditBackdropClick(e) {
-        if (e.target.id === "editPromptModal") closeEditModal();
-      }
-
-      function renderEditImages() {
-        const list = document.getElementById("editImagesList");
-        if (!list) return;
-        if (editImages.length === 0) {
-          list.innerHTML = '<div style="color:#9ca3af;font-size:0.85rem;padding:6px 0;"><i class="fa-regular fa-images"></i> No images added yet. Upload or add URLs below.</div>';
-          return;
+      try {
+        const res = await fetch("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: pwd })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          userIsAdmin = true;
+          closeAuthModal();
+          showToast("Admin access unlocked!");
+          openEditModal();
+        } else {
+          if (err) {
+            err.textContent = data.error || "Incorrect password. Please try again.";
+            err.style.display = "block";
+          }
         }
-        list.innerHTML = editImages.map((img, i) => {
-          const full = img.startsWith("http") ? img : ("${baseUrl}" + img);
-          return '<div class="edit-image-chip">' +
-            '<img src="' + full + '" alt="Img ' + (i+1) + '" />' +
-            '<button type="button" class="chip-delete" onclick="removeEditImage(' + i + ')" title="Remove image">&times;</button>' +
-            (i === 0 ? '<span class="chip-primary-badge">Primary</span>' : '') +
-            '</div>';
-        }).join("");
-      }
-
-      function addImageFromUrl() {
-        const input = document.getElementById("newImageUrlInput");
-        const val = input ? input.value.trim() : "";
-        if (!val) return;
-        if (!val.startsWith("http://") && !val.startsWith("https://") && !val.startsWith("/")) {
-          alert("Please enter a valid image URL starting with http://, https://, or /");
-          return;
+      } catch (e) {
+        if (err) {
+          err.textContent = "Network error: " + e.message;
+          err.style.display = "block";
         }
-        editImages.push(val);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = origHtml;
+        }
+      }
+    }
+
+    let editImages = ${JSON.stringify(promptImages)};
+
+    function openEditModal() {
+      const modal = document.getElementById("editPromptModal");
+      if (modal) modal.style.display = "flex";
+      renderEditImages();
+    }
+
+    function closeEditModal() {
+      const modal = document.getElementById("editPromptModal");
+      if (modal) modal.style.display = "none";
+    }
+
+    function handleEditBackdropClick(e) {
+      if (e.target.id === "editPromptModal") closeEditModal();
+    }
+
+    function renderEditImages() {
+      const list = document.getElementById("editImagesList");
+      if (!list) return;
+      if (editImages.length === 0) {
+        list.innerHTML = '<div style="color:#9ca3af;font-size:0.85rem;padding:6px 0;"><i class="fa-regular fa-images"></i> No images added yet. Upload or add URLs below.</div>';
+        return;
+      }
+      list.innerHTML = editImages.map((img, i) => {
+        const full = img.startsWith("http") ? img : ("${baseUrl}" + img);
+        return '<div class="edit-image-chip">' +
+          '<img src="' + full + '" alt="Img ' + (i+1) + '" />' +
+          '<button type="button" class="chip-delete" onclick="removeEditImage(' + i + ')" title="Remove image">&times;</button>' +
+          (i === 0 ? '<span class="chip-primary-badge">Primary</span>' : '') +
+          '</div>';
+      }).join("");
+    }
+
+    function addImageFromUrl() {
+      const input = document.getElementById("newImageUrlInput");
+      const val = input ? input.value.trim() : "";
+      if (!val) return;
+      if (!val.startsWith("http://") && !val.startsWith("https://") && !val.startsWith("/")) {
+        alert("Please enter a valid image URL starting with http://, https://, or /");
+        return;
+      }
+      editImages.push(val);
+      input.value = "";
+      renderEditImages();
+      showToast("Image URL added to list");
+    }
+
+    async function uploadFileToR2(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+
+      const spinner = document.getElementById("uploadSpinner");
+      if (spinner) spinner.style.display = "block";
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          editImages.push(data.url);
+          renderEditImages();
+          showToast("Image uploaded to Cloudflare R2!");
+        } else {
+          alert("Upload failed: " + (data.error || "Unknown error"));
+        }
+      } catch (err) {
+        alert("Upload error: " + err.message);
+      } finally {
+        if (spinner) spinner.style.display = "none";
         input.value = "";
-        renderEditImages();
-        showToast("Image URL added to list");
+      }
+    }
+
+    function removeEditImage(idx) {
+      editImages.splice(idx, 1);
+      renderEditImages();
+    }
+
+    async function handleEditPromptSubmit(e) {
+      e.preventDefault();
+      const saveBtn = document.getElementById("saveEditBtn");
+      const origHtml = saveBtn ? saveBtn.innerHTML : "";
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
       }
 
-      async function uploadFileToR2(input) {
-        const file = input.files && input.files[0];
-        if (!file) return;
+      const title = document.getElementById("editTitle").value.trim();
+      const category = document.getElementById("editCategory").value;
+      const platform = document.getElementById("editPlatform").value;
+      const status = document.getElementById("editStatus").value;
+      const visibility = document.getElementById("editVisibility").value;
+      const description = document.getElementById("editDescription").value.trim();
+      const content = document.getElementById("editContent").value;
+      const tagsStr = document.getElementById("editTags").value;
+      const tags = tagsStr.split(",").map(t => t.trim().replace(/^#/, "")).filter(Boolean);
 
-        const spinner = document.getElementById("uploadSpinner");
-        if (spinner) spinner.style.display = "block";
+      const payload = {
+        title,
+        category,
+        platform,
+        status,
+        visibility,
+        isPublic: visibility !== "private",
+        description,
+        content,
+        tags,
+        images: editImages,
+      };
 
-        const formData = new FormData();
-        formData.append("file", file);
-
-        try {
-          const res = await fetch("/api/upload", {
-            method: "POST",
-            body: formData
-          });
-          const data = await res.json();
-          if (res.ok && data.success) {
-            editImages.push(data.url);
-            renderEditImages();
-            showToast("Image uploaded to Cloudflare R2!");
-          } else {
-            alert("Upload failed: " + (data.error || "Unknown error"));
-          }
-        } catch (err) {
-          alert("Upload error: " + err.message);
-        } finally {
-          if (spinner) spinner.style.display = "none";
-          input.value = "";
-        }
-      }
-
-      function removeEditImage(idx) {
-        editImages.splice(idx, 1);
-        renderEditImages();
-      }
-
-      async function handleEditPromptSubmit(e) {
-        e.preventDefault();
-        const saveBtn = document.getElementById("saveEditBtn");
-        const origHtml = saveBtn ? saveBtn.innerHTML : "";
-        if (saveBtn) {
-          saveBtn.disabled = true;
-          saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
-        }
-
-        const title = document.getElementById("editTitle").value.trim();
-        const category = document.getElementById("editCategory").value;
-        const platform = document.getElementById("editPlatform").value;
-        const status = document.getElementById("editStatus").value;
-        const visibility = document.getElementById("editVisibility").value;
-        const description = document.getElementById("editDescription").value.trim();
-        const content = document.getElementById("editContent").value;
-        const tagsStr = document.getElementById("editTags").value;
-        const tags = tagsStr.split(",").map(t => t.trim().replace(/^#/, "")).filter(Boolean);
-
-        const payload = {
-          title,
-          category,
-          platform,
-          status,
-          visibility,
-          isPublic: visibility !== "private",
-          description,
-          content,
-          tags,
-          images: editImages,
-        };
-
-        try {
-          const res = await fetch("/api/admin/prompts/${prompt.shortId}/edit", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-          const data = await res.json();
-          if (res.ok && data.success) {
-            showToast("Prompt updated successfully!");
-            setTimeout(() => {
-              window.location.reload();
-            }, 500);
-          } else {
-            alert("Failed to update prompt: " + (data.error || "Unknown error"));
-            if (saveBtn) {
-              saveBtn.disabled = false;
-              saveBtn.innerHTML = origHtml;
-            }
-          }
-        } catch (err) {
-          alert("Error updating prompt: " + err.message);
+      try {
+        const res = await fetch("/api/admin/prompts/${prompt.shortId}/edit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast("Prompt updated successfully!");
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } else {
+          alert("Failed to update prompt: " + (data.error || "Unknown error"));
           if (saveBtn) {
             saveBtn.disabled = false;
             saveBtn.innerHTML = origHtml;
           }
         }
+      } catch (err) {
+        alert("Error updating prompt: " + err.message);
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = origHtml;
+        }
       }
-    ` : ''}
+    }
 
     function renderCompiled() {
       const outputElem = document.getElementById("compiledContent");
@@ -1112,6 +1211,9 @@ console.log(prompt.title, prompt.content);</pre>
     }
 
     renderCompiled();
+    if (openEditOnLoad) {
+      handleEditPromptClick();
+    }
     fetch('/api/prompts/${prompt.shortId}/stats', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ type: 'view' }) });
   </script>
 </body>
@@ -1569,6 +1671,8 @@ function getGlobalStyles(): string {
     .modal-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; width: 100%; max-width: 550px; padding: 1.5rem; }
     .modal-window { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; width: 100%; padding: 1.5rem; }
     .modal-window.modal-wide { max-width: 720px; max-height: 90vh; overflow-y: auto; }
+    .modal-window.modal-auth { max-width: 420px; }
+    .alert-error { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.65rem 0.9rem; border-radius: 8px; font-size: 0.85rem; margin-bottom: 1rem; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
     .modal-close, .close-btn { background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; }
     .modal-close:hover, .close-btn:hover { color: #fff; }

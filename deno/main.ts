@@ -258,30 +258,61 @@ Deno.serve({ port: PORT }, async (req: Request) => {
     // Route 2: Admin Authentication & Dashboard
     // -------------------------------------------------------------
     if (path === "/admin/login" && method === "GET") {
+      const redirectUrl = url.searchParams.get("redirect") || "/admin";
       if (isAdminAuthenticated(req)) {
-        return Response.redirect(`${baseUrl}/admin`, 302);
+        return Response.redirect(`${baseUrl}${redirectUrl}`, 302);
       }
-      const html = renderAdminLoginPage();
+      const html = renderAdminLoginPage("", redirectUrl);
       return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders } });
     }
 
-    if (path === "/admin/login" && method === "POST") {
-      const formData = await req.formData().catch(() => null);
-      const password = formData?.get("password")?.toString() || "";
+    if ((path === "/admin/login" || path === "/api/admin/login") && method === "POST") {
+      let password = "";
+      let redirectUrl = url.searchParams.get("redirect") || "/admin";
+      const contentType = req.headers.get("content-type") || "";
+
+      if (contentType.includes("application/json")) {
+        const body = await req.json().catch(() => ({}));
+        password = body.password || "";
+        if (body.redirect) redirectUrl = body.redirect;
+      } else {
+        const formData = await req.formData().catch(() => null);
+        password = formData?.get("password")?.toString() || "";
+        const redirectParam = formData?.get("redirect")?.toString();
+        if (redirectParam) redirectUrl = redirectParam;
+      }
+
+      const isJsonRequest = path.startsWith("/api/") || (req.headers.get("accept") || "").includes("application/json") || contentType.includes("application/json");
 
       if (checkAdminPassword(password)) {
         const { cookieHeader } = createAdminSession();
+        if (isJsonRequest) {
+          return new Response(JSON.stringify({ success: true, redirect: redirectUrl }), {
+            headers: {
+              "Content-Type": "application/json",
+              "Set-Cookie": cookieHeader,
+              ...corsHeaders,
+            },
+          });
+        }
         return new Response(null, {
           status: 302,
           headers: {
-            "Location": "/admin",
+            "Location": redirectUrl,
             "Set-Cookie": cookieHeader,
             ...corsHeaders,
           },
         });
       }
 
-      const html = renderAdminLoginPage("Invalid password. Please try again.");
+      if (isJsonRequest) {
+        return new Response(JSON.stringify({ error: "Invalid admin password. Please try again." }), {
+          status: 401,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      const html = renderAdminLoginPage("Invalid password. Please try again.", redirectUrl);
       return new Response(html, { status: 401, headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders } });
     }
 
@@ -499,7 +530,15 @@ Deno.serve({ port: PORT }, async (req: Request) => {
     // -------------------------------------------------------------
     const isSinglePromptRoute = (path.startsWith("/p/") && isGetOrHead) || (/^\/[a-zA-Z0-9_-]{4,15}$/.test(path) && isGetOrHead && !path.startsWith("/api") && !path.startsWith("/admin") && path !== "/robots.txt" && path !== "/favicon.ico" && path !== "/feed.xml" && path !== "/rss.xml" && !path.startsWith("/sitemap"));
     if (isSinglePromptRoute) {
-      const shortId = path.startsWith("/p/") ? path.split("/")[2] : path.slice(1);
+      let shortId = path.startsWith("/p/") ? path.split("/")[2] : path.slice(1);
+      const isEditDirectSubpath = path.startsWith("/p/") && path.endsWith("/edit");
+      const isEditQuery = url.searchParams.get("edit") === "1" || url.searchParams.get("edit") === "true";
+      const isEditRequested = isEditDirectSubpath || isEditQuery;
+
+      if (isEditDirectSubpath) {
+        shortId = path.split("/")[2];
+      }
+
       const prompt = await getPromptByShortId(shortId);
       if (!prompt) {
         const acceptHeader = (req.headers.get("accept") || "").toLowerCase();
@@ -514,6 +553,11 @@ Deno.serve({ port: PORT }, async (req: Request) => {
       }
 
       const isAdmin = isAdminAuthenticated(req);
+
+      // If /p/:shortId/edit was requested directly and user is not admin, redirect to admin login
+      if (isEditDirectSubpath && !isAdmin) {
+        return Response.redirect(`${baseUrl}/admin/login?redirect=${encodeURIComponent('/p/' + prompt.shortId + '?edit=1')}`, 302);
+      }
       const isApproved = (prompt.status === 'approved' || (!prompt.status && prompt.isPublic !== false)) && prompt.visibility !== 'private';
 
       // Security & Visibility check: If prompt is pending / private and user is not admin
@@ -610,7 +654,7 @@ ${prompt.content}
       }
 
       // Default: HTML Web Page
-      const html = renderPromptDetailPage(prompt, baseUrl, isAdmin);
+      const html = renderPromptDetailPage(prompt, baseUrl, isAdmin, isEditRequested);
       return new Response(method === "HEAD" ? null : html, {
         headers: {
           "Content-Type": "text/html; charset=utf-8",

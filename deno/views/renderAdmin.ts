@@ -1,6 +1,6 @@
 import { PromptDoc, PaginatedPrompts } from "../db.ts";
 
-export function renderAdminLoginPage(error?: string): string {
+export function renderAdminLoginPage(error?: string, redirectUrl = "/admin"): string {
   return `<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -26,6 +26,7 @@ export function renderAdminLoginPage(error?: string): string {
     ${error ? `<div class="alert alert-error"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(error)}</div>` : ''}
 
     <form action="/admin/login" method="POST" class="login-form">
+      <input type="hidden" name="redirect" value="${escapeHtml(redirectUrl)}" />
       <div class="form-group">
         <label for="password"><i class="fa-solid fa-lock"></i> Master Password</label>
         <input type="password" id="password" name="password" required placeholder="••••••••••••" autofocus>
