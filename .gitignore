@@ -1,5 +1,7 @@
 node_modules/
 .expo/
+.env
+*.env
 deno/.env
 # deno/data/
 bank/
