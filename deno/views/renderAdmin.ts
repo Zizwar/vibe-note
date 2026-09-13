@@ -25,7 +25,7 @@ export function renderAdminLoginPage(error?: string, redirectUrl = "/admin"): st
 
     ${error ? `<div class="alert alert-error"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(error)}</div>` : ''}
 
-    <form action="/admin/login" method="POST" class="login-form">
+    <form action="/admin/login" method="POST" class="login-form" onsubmit="try{localStorage.setItem('vibenote_admin_pwd',document.getElementById('password').value)}catch(e){}">
       <input type="hidden" name="redirect" value="${escapeHtml(redirectUrl)}" />
       <div class="form-group">
         <label for="password"><i class="fa-solid fa-lock"></i> Master Password</label>
@@ -328,9 +328,24 @@ export function renderAdminDashboardPage(data: {
       window.location.href = url.toString();
     }
 
+    function getAdminHeaders(extra = {}) {
+      const h = Object.assign({}, extra);
+      try {
+        const token = localStorage.getItem("vibenote_admin_token");
+        if (token) h["x-admin-token"] = token;
+        const pwd = localStorage.getItem("vibenote_admin_pwd");
+        if (pwd) h["x-admin-password"] = pwd;
+      } catch(e) {}
+      return h;
+    }
+
     async function approvePrompt(shortId) {
       try {
-        const res = await fetch('/api/admin/approve/' + shortId, { method: 'POST' });
+        const res = await fetch('/api/admin/approve/' + shortId, {
+          method: 'POST',
+          headers: getAdminHeaders(),
+          credentials: 'include'
+        });
         const data = await res.json();
         if (data.success) {
           showToast("Prompt approved!");
@@ -344,7 +359,11 @@ export function renderAdminDashboardPage(data: {
 
     async function unpublishPrompt(shortId) {
       try {
-        const res = await fetch('/api/admin/unpublish/' + shortId, { method: 'POST' });
+        const res = await fetch('/api/admin/unpublish/' + shortId, {
+          method: 'POST',
+          headers: getAdminHeaders(),
+          credentials: 'include'
+        });
         const data = await res.json();
         if (data.success) {
           showToast("Prompt unpublished!");
@@ -358,7 +377,11 @@ export function renderAdminDashboardPage(data: {
     async function deletePrompt(shortId) {
       if (!confirm("Are you sure you want to delete prompt " + shortId + "?")) return;
       try {
-        const res = await fetch('/api/admin/delete/' + shortId, { method: 'DELETE' });
+        const res = await fetch('/api/admin/delete/' + shortId, {
+          method: 'DELETE',
+          headers: getAdminHeaders(),
+          credentials: 'include'
+        });
         const data = await res.json();
         if (data.success) {
           showToast("Prompt deleted!");
@@ -382,8 +405,9 @@ export function renderAdminDashboardPage(data: {
       try {
         const res = await fetch('/api/admin/create', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, category, platform, description, content, tags, status: 'approved' })
+          headers: getAdminHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ title, category, platform, description, content, tags, status: 'approved' }),
+          credentials: 'include'
         });
         const data = await res.json();
         if (data.success) {

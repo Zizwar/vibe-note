@@ -924,7 +924,7 @@ console.log(prompt.title, prompt.content);</pre>
       }
     });
 
-    let userIsAdmin = ${Boolean(isAdmin)};
+    let userIsAdmin = ${Boolean(isAdmin)} || Boolean(localStorage.getItem("vibenote_admin_token")) || Boolean(localStorage.getItem("vibenote_admin_pwd"));
     const openEditOnLoad = ${Boolean(openEditOnLoad)};
 
     function handleEditPromptClick() {
@@ -971,11 +971,16 @@ console.log(prompt.title, prompt.content);</pre>
         const res = await fetch("/api/admin/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password: pwd })
+          body: JSON.stringify({ password: pwd }),
+          credentials: "include"
         });
         const data = await res.json();
         if (res.ok && data.success) {
           userIsAdmin = true;
+          try {
+            if (data.token) localStorage.setItem("vibenote_admin_token", data.token);
+            localStorage.setItem("vibenote_admin_pwd", pwd);
+          } catch(e) {}
           closeAuthModal();
           showToast("Admin access unlocked!");
           openEditModal();
@@ -1056,10 +1061,20 @@ console.log(prompt.title, prompt.content);</pre>
       const formData = new FormData();
       formData.append("file", file);
 
+      const headers = {};
+      try {
+        const token = localStorage.getItem("vibenote_admin_token");
+        if (token) headers["x-admin-token"] = token;
+        const pwd = localStorage.getItem("vibenote_admin_pwd");
+        if (pwd) headers["x-admin-password"] = pwd;
+      } catch(e) {}
+
       try {
         const res = await fetch("/api/upload", {
           method: "POST",
-          body: formData
+          headers: headers,
+          body: formData,
+          credentials: "include"
         });
         const data = await res.json();
         if (res.ok && data.success) {
@@ -1114,11 +1129,20 @@ console.log(prompt.title, prompt.content);</pre>
         images: editImages,
       };
 
+      const headers = { "Content-Type": "application/json" };
+      try {
+        const token = localStorage.getItem("vibenote_admin_token");
+        if (token) headers["x-admin-token"] = token;
+        const pwd = localStorage.getItem("vibenote_admin_pwd");
+        if (pwd) headers["x-admin-password"] = pwd;
+      } catch(e) {}
+
       try {
         const res = await fetch("/api/admin/prompts/${prompt.shortId}/edit", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: headers,
           body: JSON.stringify(payload),
+          credentials: "include"
         });
         const data = await res.json();
         if (res.ok && data.success) {

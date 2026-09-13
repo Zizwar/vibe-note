@@ -63,7 +63,7 @@ Deno.serve({ port: PORT }, async (req: Request) => {
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, HEAD, POST, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, x-admin-token, x-admin-password",
   };
 
   if (method === "OPTIONS") {
@@ -285,9 +285,9 @@ Deno.serve({ port: PORT }, async (req: Request) => {
       const isJsonRequest = path.startsWith("/api/") || (req.headers.get("accept") || "").includes("application/json") || contentType.includes("application/json");
 
       if (checkAdminPassword(password)) {
-        const { cookieHeader } = createAdminSession();
+        const { token, cookieHeader } = createAdminSession();
         if (isJsonRequest) {
-          return new Response(JSON.stringify({ success: true, redirect: redirectUrl }), {
+          return new Response(JSON.stringify({ success: true, token, redirect: redirectUrl }), {
             headers: {
               "Content-Type": "application/json",
               "Set-Cookie": cookieHeader,
