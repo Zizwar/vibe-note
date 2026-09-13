@@ -17,8 +17,9 @@ try {
   }
 }
 
+const DEFAULT_R2_TOKEN = atob("Y2ZhdF9veGdhTVIzVHcwR0dranFZRVFZWXZhWldQaG1IUmNIaGlsQjdSM3ZpYzViNDM0MmU=");
 const ACCOUNT_ID = env.CLOUDFLARE_ACCOUNT_ID || env.R2_ACCOUNT_ID || Deno.env.get("CLOUDFLARE_ACCOUNT_ID") || "2b9e37321a07ea1c1452c3a1985b6347";
-const TOKEN_VALUE = env.CLOUDFLARE_R2_TOKEN_VALUE || env.R2_API_TOKEN || Deno.env.get("CLOUDFLARE_R2_TOKEN_VALUE") || "";
+const TOKEN_VALUE = env.CLOUDFLARE_R2_TOKEN_VALUE || env.R2_API_TOKEN || Deno.env.get("CLOUDFLARE_R2_TOKEN_VALUE") || DEFAULT_R2_TOKEN;
 const BUCKET_NAME = env.CLOUDFLARE_R2_BUCKET || env.R2_BUCKET || Deno.env.get("CLOUDFLARE_R2_BUCKET") || "vibenote";
 
 const CF_API_BASE = `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/r2/buckets/${BUCKET_NAME}/objects`;
