@@ -8,12 +8,14 @@ import {
   getAdminPendingPrompts,
   getAdminAllPrompts,
   updatePromptStatus,
+  updatePrompt,
   deletePrompt,
   getAllApprovedPromptMetas,
   getLatestApprovedPrompts,
   PromptDoc,
   PromptMeta
 } from "./db.ts";
+import { uploadImageToR2, getImageFromR2 } from "./r2Storage.ts";
 import { renderHomePage, renderPromptDetailPage, render404Page, renderPendingPrivatePromptPage } from "./views/renderHtml.ts";
 import { renderAdminLoginPage, renderAdminDashboardPage } from "./views/renderAdmin.ts";
 import { checkAdminPassword, createAdminSession, clearAdminSession, isAdminAuthenticated } from "./adminAuth.ts";
@@ -74,7 +76,7 @@ Deno.serve({ port: PORT }, async (req: Request) => {
     // -------------------------------------------------------------
     // Global API Rate Limiting (Server Anti-Flood Protection)
     // -------------------------------------------------------------
-    if (path.startsWith("/api/") && !path.startsWith("/api/admin/")) {
+    if (path.startsWith("/api/") && !path.startsWith("/api/admin/") && path !== "/api/upload") {
       const clientIp = getClientIp(req);
       const apiLimit = checkApiRateLimit(clientIp);
       if (!apiLimit.allowed) {
@@ -212,6 +214,21 @@ Deno.serve({ port: PORT }, async (req: Request) => {
       return new Response(method === "HEAD" ? null : svgFavicon, {
         headers: { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400", ...corsHeaders },
       });
+    }
+
+    // -------------------------------------------------------------
+    // Route: Cloudflare R2 Uploaded Images Proxy (/uploads/*)
+    // -------------------------------------------------------------
+    if (path.startsWith("/uploads/") && isGetOrHead) {
+      const key = path.substring("/uploads/".length);
+      if (!key) {
+        return new Response("Not Found", { status: 404, headers: corsHeaders });
+      }
+      const r2Response = await getImageFromR2(key);
+      if (!r2Response) {
+        return new Response("Image Not Found", { status: 404, headers: corsHeaders });
+      }
+      return r2Response;
     }
 
     // -------------------------------------------------------------
@@ -367,6 +384,114 @@ Deno.serve({ port: PORT }, async (req: Request) => {
       return new Response(JSON.stringify({ success: true, prompt: saved }), {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
+    }
+
+    // Edit Existing Prompt
+    if (
+      ((path.startsWith("/api/admin/prompts/") && path.endsWith("/edit")) ||
+       (path.startsWith("/api/admin/prompts/") && (method === "PUT" || method === "POST"))) &&
+      !path.includes("/approve") && !path.includes("/unpublish") && !path.includes("/delete")
+    ) {
+      if (!isAdminAuthenticated(req)) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      }
+      const parts = path.split("/");
+      const shortId = parts[4];
+      if (!shortId) {
+        return new Response(JSON.stringify({ error: "Missing prompt shortId" }), { status: 400, headers: corsHeaders });
+      }
+
+      const body = await req.json().catch(() => ({}));
+      if (body.content && (!body.variables || body.variables.length === 0)) {
+        body.variables = extractVariables(body.content);
+      }
+
+      const updated = await updatePrompt(shortId, body);
+      if (!updated) {
+        return new Response(JSON.stringify({ error: "Prompt not found or update failed" }), { status: 404, headers: corsHeaders });
+      }
+
+      cachedUnifiedSitemap = null;
+      cachedRssFeed = null;
+
+      return new Response(JSON.stringify({ success: true, prompt: updated }), {
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Direct Image Upload to Cloudflare R2
+    if ((path === "/api/upload" || path === "/api/admin/upload") && method === "POST") {
+      if (!isAdminAuthenticated(req)) {
+        return new Response(JSON.stringify({ error: "Unauthorized. Admin access required to upload images." }), {
+          status: 401,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      try {
+        const contentType = req.headers.get("content-type") || "";
+        let fileBytes: Uint8Array;
+        let fileName = "prompt-image.jpg";
+        let mimeType = "image/jpeg";
+
+        if (contentType.includes("multipart/form-data")) {
+          const formData = await req.formData();
+          const file = formData.get("file") as File | null;
+          if (!file) {
+            return new Response(JSON.stringify({ error: "No image file provided in form field 'file'." }), {
+              status: 400,
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            });
+          }
+          fileName = file.name || "upload.jpg";
+          mimeType = file.type || "image/jpeg";
+          fileBytes = new Uint8Array(await file.arrayBuffer());
+        } else {
+          fileName = req.headers.get("x-filename") || "upload.jpg";
+          mimeType = contentType || "image/jpeg";
+          fileBytes = new Uint8Array(await req.arrayBuffer());
+        }
+
+        if (!fileBytes || fileBytes.length === 0) {
+          return new Response(JSON.stringify({ error: "Empty file received." }), {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+
+        if (fileBytes.length > 10 * 1024 * 1024) {
+          return new Response(JSON.stringify({ error: "Image size exceeds 10MB limit." }), {
+            status: 413,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+
+        const uploadResult = await uploadImageToR2(fileName, fileBytes, mimeType);
+        if (!uploadResult.success) {
+          return new Response(JSON.stringify({ error: uploadResult.error || "R2 storage upload failed." }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            url: uploadResult.url,
+            fullUrl: `${baseUrl}${uploadResult.url}`,
+            key: uploadResult.key,
+          }),
+          {
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      } catch (err: any) {
+        console.error("Upload error:", err);
+        return new Response(JSON.stringify({ error: err.message || "Failed to upload file." }), {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
     }
 
     // -------------------------------------------------------------

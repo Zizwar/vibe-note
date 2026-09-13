@@ -23,6 +23,8 @@ export interface PromptDoc {
   isPublic: boolean;
   status?: 'approved' | 'pending' | 'rejected';
   visibility?: 'public' | 'private' | 'unlisted';
+  images?: string[];
+  image?: string;
   views: number;
   copies: number;
   createdAt: string;
@@ -352,6 +354,11 @@ export async function savePrompt(promptData: Partial<PromptDoc>): Promise<Prompt
   const visibility = promptData.visibility || (isApproved ? 'public' : 'private');
   const isPublic = isApproved && visibility === 'public';
 
+  const rawImages = Array.isArray(promptData.images)
+    ? promptData.images.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+    : (typeof promptData.image === "string" && promptData.image.trim().length > 0 ? [promptData.image.trim()] : []);
+  const primaryImage = rawImages[0] || "";
+
   const doc: PromptDoc = {
     shortId,
     kind: promptData.kind || "prompt",
@@ -365,6 +372,8 @@ export async function savePrompt(promptData: Partial<PromptDoc>): Promise<Prompt
     isPublic,
     status,
     visibility,
+    images: rawImages,
+    image: primaryImage,
     views: promptData.views || 0,
     copies: promptData.copies || 0,
     createdAt: promptData.createdAt || now,
@@ -547,6 +556,64 @@ export async function updatePromptStatus(shortId: string, status: 'approved' | '
     }
   } catch {}
   return false;
+}
+
+export async function updatePrompt(shortId: string, updates: Partial<PromptDoc>): Promise<PromptDoc | null> {
+  const now = new Date().toISOString();
+  const allowedFields: (keyof PromptDoc)[] = [
+    'title', 'description', 'content', 'category', 'platform', 'tags',
+    'variables', 'images', 'image', 'isPublic', 'status', 'visibility'
+  ];
+
+  const setObj: any = { updatedAt: now };
+
+  for (const field of allowedFields) {
+    if (updates[field] !== undefined) {
+      setObj[field] = updates[field];
+    }
+  }
+
+  // Synchronize images array and primary image
+  if (updates.images !== undefined) {
+    const rawImages = Array.isArray(updates.images)
+      ? updates.images.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+      : [];
+    setObj.images = rawImages;
+    setObj.image = rawImages[0] || "";
+  } else if (updates.image !== undefined) {
+    setObj.image = updates.image;
+    if (updates.images === undefined) {
+      setObj.images = updates.image ? [updates.image] : [];
+    }
+  }
+
+  if (!useFallbackDb && mongoCollection) {
+    try {
+      const res = await mongoCollection.findOneAndUpdate(
+        { shortId },
+        { $set: setObj },
+        { returnDocument: 'after' }
+      );
+      if (res) return res as PromptDoc;
+    } catch (e) {
+      console.error("MongoDB updatePrompt error:", e);
+    }
+  }
+
+  try {
+    const raw = await Deno.readTextFile(LOCAL_DB_PATH);
+    let list: PromptDoc[] = JSON.parse(raw);
+    const idx = list.findIndex(x => x.shortId === shortId);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...setObj };
+      await Deno.writeTextFile(LOCAL_DB_PATH, JSON.stringify(list, null, 2));
+      return list[idx];
+    }
+  } catch (err) {
+    console.error("Fallback updatePrompt error:", err);
+  }
+
+  return null;
 }
 
 export async function deletePrompt(shortId: string): Promise<boolean> {

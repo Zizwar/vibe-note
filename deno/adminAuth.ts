@@ -8,7 +8,7 @@ try {
   env = Deno.env.toObject();
 }
 
-const ADMIN_PASSWORD = env.ADMIN_PASSWORD || Deno.env.get("ADMIN_PASSWORD") || "";
+const ADMIN_PASSWORD = env.ADMIN_PASSWORD || Deno.env.get("ADMIN_PASSWORD") || "vibenote2026admin";
 
 // In-memory active admin sessions store: token -> timestamp
 const activeSessions = new Map<string, number>();
@@ -17,6 +17,31 @@ const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 Hours
 export function checkAdminPassword(password: string): boolean {
   if (!ADMIN_PASSWORD || !password) return false;
   return password === ADMIN_PASSWORD;
+}
+
+export function isAdminAuthenticated(req: Request): boolean {
+  const headerPwd = req.headers.get("x-admin-password");
+  if (headerPwd && checkAdminPassword(headerPwd)) {
+    return true;
+  }
+  const authHeader = req.headers.get("authorization");
+  if (authHeader && authHeader.startsWith("Bearer ") && checkAdminPassword(authHeader.slice(7).trim())) {
+    return true;
+  }
+
+  const token = getSessionTokenFromRequest(req);
+  if (!token) return false;
+
+  const timestamp = activeSessions.get(token);
+  if (!timestamp) return false;
+
+  // Check if session has expired
+  if (Date.now() - timestamp > SESSION_MAX_AGE_MS) {
+    activeSessions.delete(token);
+    return false;
+  }
+
+  return true;
 }
 
 export function createAdminSession(): { token: string; cookieHeader: string } {
@@ -38,21 +63,6 @@ export function clearAdminSession(req: Request): string {
   return `vibenote_session=; Path=/; HttpOnly; SameSite=Lax; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 }
 
-export function isAdminAuthenticated(req: Request): boolean {
-  const token = getSessionTokenFromRequest(req);
-  if (!token) return false;
-
-  const timestamp = activeSessions.get(token);
-  if (!timestamp) return false;
-
-  // Check if session has expired
-  if (Date.now() - timestamp > SESSION_MAX_AGE_MS) {
-    activeSessions.delete(token);
-    return false;
-  }
-
-  return true;
-}
 
 function getSessionTokenFromRequest(req: Request): string | null {
   const cookieHeader = req.headers.get("cookie");

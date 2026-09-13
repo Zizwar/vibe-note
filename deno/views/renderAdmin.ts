@@ -161,6 +161,9 @@ export function renderAdminDashboardPage(data: {
                       <td>${new Date(p.createdAt).toLocaleString()}</td>
                       <td>
                         <div class="action-btns">
+                          <a href="/p/${p.shortId}" target="_blank" class="btn btn-secondary btn-small" title="View & Edit Prompt">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                          </a>
                           <button class="btn btn-success btn-small" onclick="approvePrompt('${p.shortId}')">
                             <i class="fa-solid fa-check"></i> Approve & Publish
                           </button>
@@ -226,6 +229,9 @@ export function renderAdminDashboardPage(data: {
                     <td>${new Date(p.createdAt).toLocaleDateString()}</td>
                     <td>
                       <div class="action-btns">
+                        <a href="/p/${p.shortId}" target="_blank" class="btn btn-secondary btn-small" title="View & Edit Prompt">
+                          <i class="fa-solid fa-pen-to-square"></i> Edit
+                        </a>
                         ${p.status === 'pending'
                           ? `<button class="btn btn-success btn-small" onclick="approvePrompt('${p.shortId}')"><i class="fa-solid fa-check"></i> Approve</button>`
                           : `<button class="btn btn-warning btn-small" onclick="unpublishPrompt('${p.shortId}')"><i class="fa-solid fa-ban"></i> Unpublish</button>`

@@ -316,6 +316,18 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://vib
   const svgUrl = `${shortUrl}?type=svg`;
   const appDeepLink = `vibenote://prompt/${prompt.shortId}?data=${encodeURIComponent(JSON.stringify(prompt))}`;
 
+  const promptImages: string[] = (prompt.images && prompt.images.length > 0)
+    ? prompt.images
+    : (prompt.image ? [prompt.image] : []);
+  const primaryImage = promptImages[0] || "";
+  const resolvedOgImage = primaryImage
+    ? (primaryImage.startsWith("http") ? primaryImage : `${baseUrl}${primaryImage}`)
+    : svgUrl;
+  const isCustomImage = Boolean(primaryImage);
+  const ogImageType = primaryImage
+    ? (primaryImage.endsWith(".png") ? "image/png" : primaryImage.endsWith(".webp") ? "image/webp" : "image/jpeg")
+    : "image/svg+xml";
+
   const promptTitle = `${prompt.title} — Vibe Note AI Prompt`;
   const promptDescription = prompt.description || prompt.content.slice(0, 160);
 
@@ -330,6 +342,7 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://vib
         "programmingLanguage": prompt.category,
         "codeSampleType": "AI Prompt Template",
         "url": shortUrl,
+        ...(primaryImage ? { "image": resolvedOgImage } : {}),
         "dateCreated": prompt.createdAt,
         "dateModified": prompt.updatedAt || prompt.createdAt,
         "author": {
@@ -368,6 +381,7 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://vib
         "headline": prompt.title,
         "description": promptDescription,
         "mainEntityOfPage": shortUrl,
+        ...(primaryImage ? { "image": resolvedOgImage } : {}),
         "datePublished": prompt.createdAt,
         "dateModified": prompt.updatedAt || prompt.createdAt,
         "publisher": {
@@ -400,18 +414,18 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://vib
   <meta property="og:description" content="${escapeHtml(promptDescription)}">
   <meta property="og:site_name" content="Vibe Note">
   <meta property="og:locale" content="en_US">
-  <meta property="og:image" content="${svgUrl}">
-  <meta property="og:image:type" content="image/svg+xml">
-  <meta property="og:image:width" content="800">
-  <meta property="og:image:height" content="450">
-  <meta property="og:image:alt" content="${escapeHtml(prompt.title)} AI Prompt Card">
+  <meta property="og:image" content="${resolvedOgImage}">
+  <meta property="og:image:type" content="${ogImageType}">
+  <meta property="og:image:width" content="${isCustomImage ? '1200' : '800'}">
+  <meta property="og:image:height" content="${isCustomImage ? '630' : '450'}">
+  <meta property="og:image:alt" content="${escapeHtml(prompt.title)} Visual Preview">
 
   <!-- Twitter Cards -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:url" content="${shortUrl}">
   <meta name="twitter:title" content="${escapeHtml(prompt.title)} — Vibe Note">
   <meta name="twitter:description" content="${escapeHtml(promptDescription)}">
-  <meta name="twitter:image" content="${svgUrl}">
+  <meta name="twitter:image" content="${resolvedOgImage}">
 
   <!-- Schema.org JSON-LD -->
   <script type="application/ld+json">
@@ -438,6 +452,11 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://vib
           <span class="brand-name">Vibe<span class="gradient-text">Note</span></span>
         </a>
         <div class="nav-actions">
+          ${isAdmin ? `
+            <button class="btn btn-warning btn-compact" onclick="openEditModal()">
+              <i class="fa-solid fa-pen-to-square"></i> <span class="hide-mobile">Edit</span>
+            </button>
+          ` : ''}
           <a href="/" class="btn btn-secondary btn-compact"><i class="fa-solid fa-arrow-left"></i> <span class="hide-mobile">Bank</span></a>
           <a href="${appDeepLink}" class="btn btn-primary btn-glow btn-compact">
             <i class="fa-solid fa-mobile-screen-button"></i> <span class="hide-mobile">App</span>
@@ -478,6 +497,11 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://vib
           <span class="badge cat-badge">${escapeHtml(prompt.category.toUpperCase())}</span>
           <span class="badge platform-badge">${escapeHtml(prompt.platform.toUpperCase())}</span>
           <span class="badge id-badge">ID: ${prompt.shortId}</span>
+          ${isAdmin ? `
+            <button class="btn btn-warning btn-small" onclick="openEditModal()" style="margin-left: auto;">
+              <i class="fa-solid fa-pen-to-square"></i> Edit Prompt
+            </button>
+          ` : ''}
         </div>
         <h1 class="detail-title">${escapeHtml(prompt.title)}</h1>
         ${prompt.description ? `<p class="detail-desc">${escapeHtml(prompt.description)}</p>` : ''}
@@ -492,6 +516,40 @@ export function renderPromptDetailPage(prompt: PromptDoc, baseUrl = "https://vib
           <span><i class="fa-regular fa-calendar"></i> ${new Date(prompt.createdAt).toLocaleDateString()}</span>
         </div>
       </div>
+
+      <!-- Prompt Image Showcase & Gallery -->
+      ${promptImages.length > 0 ? `
+        <div class="panel prompt-gallery-panel">
+          <div class="gallery-header flex-between">
+            <h3><i class="fa-solid fa-images"></i> Visual Output & Preview Gallery (${promptImages.length})</h3>
+            <span class="gallery-hint"><i class="fa-solid fa-magnifying-glass-plus"></i> Click image to enlarge</span>
+          </div>
+          <div class="gallery-featured-wrapper" onclick="openLightbox(currentGalleryIndex)">
+            <img id="featuredGalleryImg" src="${escapeHtml(promptImages[0].startsWith('http') ? promptImages[0] : `${baseUrl}${promptImages[0]}`)}" alt="${escapeHtml(prompt.title)}" />
+            <div class="gallery-overlay">
+              <span class="gallery-zoom-badge"><i class="fa-solid fa-expand"></i> View Fullscreen</span>
+            </div>
+          </div>
+          ${promptImages.length > 1 ? `
+            <div class="gallery-thumbs-row">
+              ${promptImages.map((img, idx) => {
+                const fullSrc = img.startsWith('http') ? img : `${baseUrl}${img}`;
+                return `
+                  <div class="gallery-thumb-item ${idx === 0 ? 'active' : ''}" onclick="selectGalleryImage(${idx}, '${escapeHtml(fullSrc)}')">
+                    <img src="${escapeHtml(fullSrc)}" alt="Thumb ${idx + 1}" loading="lazy" />
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          ` : ''}
+        </div>
+      ` : (isAdmin ? `
+        <div class="panel prompt-gallery-panel prompt-gallery-empty" style="text-align: center; padding: 22px; border: 1px dashed rgba(255,255,255,0.15); margin-bottom: 24px;">
+          <i class="fa-regular fa-image" style="font-size: 2.2rem; color: #6b7280; margin-bottom: 8px;"></i>
+          <p style="color: #9ca3af; margin-bottom: 12px; font-size: 0.95rem;">No images attached to this prompt yet.</p>
+          <button class="btn btn-secondary btn-small" onclick="openEditModal()"><i class="fa-solid fa-plus"></i> Add Images</button>
+        </div>
+      ` : '')}
 
       <!-- Main Interactive Columns -->
       <div class="interactive-grid">
@@ -599,6 +657,145 @@ console.log(prompt.title, prompt.content);</pre>
       </div>
     </main>
 
+    <!-- Lightbox Modal -->
+    <div id="imageLightboxModal" class="lightbox-modal" onclick="handleLightboxBackdropClick(event)">
+      <div class="lightbox-toolbar">
+        <span id="lightboxCounter" class="lightbox-counter">1 / 1</span>
+        <div class="lightbox-actions">
+          <button type="button" class="lightbox-btn" onclick="zoomLightbox(0.2)" title="Zoom In"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+          <button type="button" class="lightbox-btn" onclick="zoomLightbox(-0.2)" title="Zoom Out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+          <button type="button" class="lightbox-btn" onclick="resetLightboxZoom()" title="Reset Zoom"><i class="fa-solid fa-rotate-left"></i></button>
+          <a id="lightboxDownloadBtn" href="" target="_blank" class="lightbox-btn" title="Open in new tab"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+          <button type="button" class="lightbox-btn lightbox-close" onclick="closeLightboxDirect()" title="Close (Esc)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+      <div class="lightbox-body">
+        <button id="lightboxPrevBtn" type="button" class="lightbox-nav-btn prev" onclick="prevLightboxImage(event)"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="lightbox-img-wrapper" id="lightboxImgWrapper">
+          <img id="lightboxMainImg" src="" alt="Enlarged Prompt Image" />
+        </div>
+        <button id="lightboxNextBtn" type="button" class="lightbox-nav-btn next" onclick="nextLightboxImage(event)"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+    </div>
+
+    ${isAdmin ? `
+      <!-- Admin Edit Prompt Modal -->
+      <div id="editPromptModal" class="modal-backdrop" style="display: none;" onclick="handleEditBackdropClick(event)">
+        <div class="modal-window modal-wide" onclick="event.stopPropagation()">
+          <div class="modal-header">
+            <h3><i class="fa-solid fa-pen-to-square"></i> Edit Prompt (${prompt.shortId})</h3>
+            <button type="button" class="modal-close" onclick="closeEditModal()">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="editPromptForm" onsubmit="handleEditPromptSubmit(event)">
+              <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="editTitle" required class="form-input" value="${escapeHtml(prompt.title)}" />
+              </div>
+
+              <div class="form-row">
+                <div class="form-group half">
+                  <label>Category</label>
+                  <select id="editCategory" class="form-select">
+                    <option value="all">All</option>
+                    <option value="code" ${prompt.category === 'code' ? 'selected' : ''}>Code</option>
+                    <option value="image" ${prompt.category === 'image' ? 'selected' : ''}>Art & Image</option>
+                    <option value="writing" ${prompt.category === 'writing' ? 'selected' : ''}>Writing</option>
+                    <option value="marketing" ${prompt.category === 'marketing' ? 'selected' : ''}>Marketing</option>
+                    <option value="business" ${prompt.category === 'business' ? 'selected' : ''}>Business</option>
+                    <option value="education" ${prompt.category === 'education' ? 'selected' : ''}>Education</option>
+                    <option value="video" ${prompt.category === 'video' ? 'selected' : ''}>Video</option>
+                    <option value="music" ${prompt.category === 'music' ? 'selected' : ''}>Music</option>
+                    <option value="other" ${prompt.category === 'other' ? 'selected' : ''}>Other</option>
+                  </select>
+                </div>
+
+                <div class="form-group half">
+                  <label>Platform</label>
+                  <select id="editPlatform" class="form-select">
+                    <option value="chatgpt" ${prompt.platform === 'chatgpt' ? 'selected' : ''}>ChatGPT</option>
+                    <option value="midjourney" ${prompt.platform === 'midjourney' ? 'selected' : ''}>Midjourney</option>
+                    <option value="claude" ${prompt.platform === 'claude' ? 'selected' : ''}>Claude</option>
+                    <option value="gemini" ${prompt.platform === 'gemini' ? 'selected' : ''}>Gemini</option>
+                    <option value="cursor" ${prompt.platform === 'cursor' ? 'selected' : ''}>Cursor</option>
+                    <option value="general" ${prompt.platform === 'general' ? 'selected' : ''}>General</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group half">
+                  <label>Status</label>
+                  <select id="editStatus" class="form-select">
+                    <option value="approved" ${prompt.status === 'approved' ? 'selected' : ''}>Approved (Published)</option>
+                    <option value="pending" ${prompt.status === 'pending' ? 'selected' : ''}>Pending (Review Queue)</option>
+                  </select>
+                </div>
+
+                <div class="form-group half">
+                  <label>Visibility</label>
+                  <select id="editVisibility" class="form-select">
+                    <option value="public" ${prompt.visibility !== 'private' ? 'selected' : ''}>Public (Listed)</option>
+                    <option value="private" ${prompt.visibility === 'private' ? 'selected' : ''}>Private (Hidden)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Description</label>
+                <textarea id="editDescription" rows="2" class="form-textarea">${escapeHtml(prompt.description || '')}</textarea>
+              </div>
+
+              <div class="form-group">
+                <label>Prompt Template Content</label>
+                <textarea id="editContent" rows="6" required class="form-textarea code-font">${escapeHtml(prompt.content)}</textarea>
+                <small class="form-hint">Use <code>{{variable_name}}</code> for dynamic variables.</small>
+              </div>
+
+              <div class="form-group">
+                <label>Tags (Comma-separated)</label>
+                <input type="text" id="editTags" class="form-input" value="${escapeHtml(prompt.tags.join(', '))}" />
+              </div>
+
+              <!-- Image Management Section -->
+              <div class="images-manager-card">
+                <div class="images-manager-header">
+                  <h4><i class="fa-solid fa-photo-film"></i> Prompt Images & Gallery</h4>
+                  <small>Upload images to Cloudflare R2 or add image URLs. Supports multiple images per prompt.</small>
+                </div>
+
+                <div id="editImagesList" class="edit-images-list"></div>
+
+                <div class="image-add-controls">
+                  <div class="add-url-row">
+                    <input type="url" id="newImageUrlInput" placeholder="https://example.com/image.png" class="form-input" />
+                    <button type="button" class="btn btn-secondary" onclick="addImageFromUrl()"><i class="fa-solid fa-link"></i> Add URL</button>
+                  </div>
+
+                  <div class="upload-r2-dropzone" onclick="document.getElementById('r2FileInput').click()">
+                    <input type="file" id="r2FileInput" accept="image/*" style="display:none" onchange="uploadFileToR2(this)" />
+                    <i class="fa-solid fa-cloud-arrow-up dropzone-icon"></i>
+                    <div class="dropzone-text">
+                      <strong>Click to upload image to Cloudflare R2</strong>
+                      <span>Supports JPG, PNG, WEBP, GIF, SVG (Up to 10MB)</span>
+                    </div>
+                    <div id="uploadSpinner" class="upload-spinner" style="display: none;">
+                      <i class="fa-solid fa-spinner fa-spin"></i> Uploading to Cloudflare R2...
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal-footer" style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" id="saveEditBtn" class="btn btn-primary btn-glow"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    ` : ''}
+
     <!-- Toast Notification -->
     <div id="toast" class="toast-message"></div>
 
@@ -612,7 +809,239 @@ console.log(prompt.title, prompt.content);</pre>
   <script>
     const rawTemplate = ${JSON.stringify(prompt.content)};
     const varsData = ${JSON.stringify(prompt.variables || [])};
+    const galleryItems = ${JSON.stringify(promptImages.map(img => img.startsWith("http") ? img : `${baseUrl}${img}`))};
+    let currentGalleryIndex = 0;
+    let lightboxZoom = 1;
     let isShowingTemplate = false;
+
+    function selectGalleryImage(idx, src) {
+      currentGalleryIndex = idx;
+      const featImg = document.getElementById("featuredGalleryImg");
+      if (featImg) featImg.src = src;
+      document.querySelectorAll(".gallery-thumb-item").forEach((el, i) => {
+        el.classList.toggle("active", i === idx);
+      });
+    }
+
+    function openLightbox(idx) {
+      if (!galleryItems || galleryItems.length === 0) return;
+      currentGalleryIndex = idx || 0;
+      updateLightboxContent();
+      const modal = document.getElementById("imageLightboxModal");
+      if (modal) modal.classList.add("active");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeLightboxDirect() {
+      const modal = document.getElementById("imageLightboxModal");
+      if (modal) modal.classList.remove("active");
+      document.body.style.overflow = "";
+      resetLightboxZoom();
+    }
+
+    function handleLightboxBackdropClick(e) {
+      if (e.target.id === "imageLightboxModal" || e.target.id === "lightboxImgWrapper") {
+        closeLightboxDirect();
+      }
+    }
+
+    function updateLightboxContent() {
+      const src = galleryItems[currentGalleryIndex];
+      const img = document.getElementById("lightboxMainImg");
+      const counter = document.getElementById("lightboxCounter");
+      const downloadBtn = document.getElementById("lightboxDownloadBtn");
+      if (img) img.src = src;
+      if (counter) counter.textContent = (currentGalleryIndex + 1) + " / " + galleryItems.length;
+      if (downloadBtn) downloadBtn.href = src;
+
+      const prevBtn = document.getElementById("lightboxPrevBtn");
+      const nextBtn = document.getElementById("lightboxNextBtn");
+      if (prevBtn) prevBtn.style.display = galleryItems.length > 1 ? "flex" : "none";
+      if (nextBtn) nextBtn.style.display = galleryItems.length > 1 ? "flex" : "none";
+    }
+
+    function nextLightboxImage(e) {
+      if (e) e.stopPropagation();
+      if (galleryItems.length <= 1) return;
+      currentGalleryIndex = (currentGalleryIndex + 1) % galleryItems.length;
+      resetLightboxZoom();
+      updateLightboxContent();
+    }
+
+    function prevLightboxImage(e) {
+      if (e) e.stopPropagation();
+      if (galleryItems.length <= 1) return;
+      currentGalleryIndex = (currentGalleryIndex - 1 + galleryItems.length) % galleryItems.length;
+      resetLightboxZoom();
+      updateLightboxContent();
+    }
+
+    function zoomLightbox(delta) {
+      lightboxZoom = Math.max(0.5, Math.min(3, lightboxZoom + delta));
+      const img = document.getElementById("lightboxMainImg");
+      if (img) img.style.transform = "scale(" + lightboxZoom + ")";
+    }
+
+    function resetLightboxZoom() {
+      lightboxZoom = 1;
+      const img = document.getElementById("lightboxMainImg");
+      if (img) img.style.transform = "scale(1)";
+    }
+
+    document.addEventListener("keydown", (e) => {
+      const modal = document.getElementById("imageLightboxModal");
+      if (modal && modal.classList.contains("active")) {
+        if (e.key === "Escape") closeLightboxDirect();
+        else if (e.key === "ArrowRight") nextLightboxImage();
+        else if (e.key === "ArrowLeft") prevLightboxImage();
+      }
+    });
+
+    ${isAdmin ? `
+      let editImages = ${JSON.stringify(promptImages)};
+
+      function openEditModal() {
+        const modal = document.getElementById("editPromptModal");
+        if (modal) modal.style.display = "flex";
+        renderEditImages();
+      }
+
+      function closeEditModal() {
+        const modal = document.getElementById("editPromptModal");
+        if (modal) modal.style.display = "none";
+      }
+
+      function handleEditBackdropClick(e) {
+        if (e.target.id === "editPromptModal") closeEditModal();
+      }
+
+      function renderEditImages() {
+        const list = document.getElementById("editImagesList");
+        if (!list) return;
+        if (editImages.length === 0) {
+          list.innerHTML = '<div style="color:#9ca3af;font-size:0.85rem;padding:6px 0;"><i class="fa-regular fa-images"></i> No images added yet. Upload or add URLs below.</div>';
+          return;
+        }
+        list.innerHTML = editImages.map((img, i) => {
+          const full = img.startsWith("http") ? img : ("${baseUrl}" + img);
+          return '<div class="edit-image-chip">' +
+            '<img src="' + full + '" alt="Img ' + (i+1) + '" />' +
+            '<button type="button" class="chip-delete" onclick="removeEditImage(' + i + ')" title="Remove image">&times;</button>' +
+            (i === 0 ? '<span class="chip-primary-badge">Primary</span>' : '') +
+            '</div>';
+        }).join("");
+      }
+
+      function addImageFromUrl() {
+        const input = document.getElementById("newImageUrlInput");
+        const val = input ? input.value.trim() : "";
+        if (!val) return;
+        if (!val.startsWith("http://") && !val.startsWith("https://") && !val.startsWith("/")) {
+          alert("Please enter a valid image URL starting with http://, https://, or /");
+          return;
+        }
+        editImages.push(val);
+        input.value = "";
+        renderEditImages();
+        showToast("Image URL added to list");
+      }
+
+      async function uploadFileToR2(input) {
+        const file = input.files && input.files[0];
+        if (!file) return;
+
+        const spinner = document.getElementById("uploadSpinner");
+        if (spinner) spinner.style.display = "block";
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            editImages.push(data.url);
+            renderEditImages();
+            showToast("Image uploaded to Cloudflare R2!");
+          } else {
+            alert("Upload failed: " + (data.error || "Unknown error"));
+          }
+        } catch (err) {
+          alert("Upload error: " + err.message);
+        } finally {
+          if (spinner) spinner.style.display = "none";
+          input.value = "";
+        }
+      }
+
+      function removeEditImage(idx) {
+        editImages.splice(idx, 1);
+        renderEditImages();
+      }
+
+      async function handleEditPromptSubmit(e) {
+        e.preventDefault();
+        const saveBtn = document.getElementById("saveEditBtn");
+        const origHtml = saveBtn ? saveBtn.innerHTML : "";
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        }
+
+        const title = document.getElementById("editTitle").value.trim();
+        const category = document.getElementById("editCategory").value;
+        const platform = document.getElementById("editPlatform").value;
+        const status = document.getElementById("editStatus").value;
+        const visibility = document.getElementById("editVisibility").value;
+        const description = document.getElementById("editDescription").value.trim();
+        const content = document.getElementById("editContent").value;
+        const tagsStr = document.getElementById("editTags").value;
+        const tags = tagsStr.split(",").map(t => t.trim().replace(/^#/, "")).filter(Boolean);
+
+        const payload = {
+          title,
+          category,
+          platform,
+          status,
+          visibility,
+          isPublic: visibility !== "private",
+          description,
+          content,
+          tags,
+          images: editImages,
+        };
+
+        try {
+          const res = await fetch("/api/admin/prompts/${prompt.shortId}/edit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            showToast("Prompt updated successfully!");
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
+          } else {
+            alert("Failed to update prompt: " + (data.error || "Unknown error"));
+            if (saveBtn) {
+              saveBtn.disabled = false;
+              saveBtn.innerHTML = origHtml;
+            }
+          }
+        } catch (err) {
+          alert("Error updating prompt: " + err.message);
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = origHtml;
+          }
+        }
+      }
+    ` : ''}
 
     function renderCompiled() {
       const outputElem = document.getElementById("compiledContent");
@@ -715,8 +1144,22 @@ function renderPromptCard(p: PromptDoc, baseUrl: string): string {
   const shortUrl = `/p/${p.shortId}`;
   const appDeepLink = `vibenote://prompt/${p.shortId}?data=${encodeURIComponent(JSON.stringify(p))}`;
 
+  const promptImages: string[] = (p.images && p.images.length > 0)
+    ? p.images
+    : (p.image ? [p.image] : []);
+  const primaryThumb = promptImages[0] || "";
+  const resolvedThumb = primaryThumb
+    ? (primaryThumb.startsWith("http") ? primaryThumb : `${baseUrl}${primaryThumb}`)
+    : "";
+
   return `
-    <div class="prompt-card">
+    <div class="prompt-card ${resolvedThumb ? 'has-thumbnail' : ''}">
+      ${resolvedThumb ? `
+        <a href="${shortUrl}" class="card-thumb-container">
+          <img src="${escapeHtml(resolvedThumb)}" alt="${escapeHtml(p.title)}" class="card-image-preview" loading="lazy" onerror="this.parentElement.style.display='none'" />
+          ${promptImages.length > 1 ? `<span class="thumb-count-badge"><i class="fa-solid fa-images"></i> ${promptImages.length}</span>` : ''}
+        </a>
+      ` : ''}
       <div class="card-header">
         <div class="card-badges">
           <span class="badge cat-badge">${escapeHtml(p.category.toUpperCase())}</span>
@@ -1021,28 +1464,166 @@ function getGlobalStyles(): string {
 
     .action-buttons-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
 
+    /* Card Image Thumbnail */
+    .prompt-card.has-thumbnail { overflow: hidden; }
+    .card-thumb-container {
+      width: 100%; height: 160px; overflow: hidden; position: relative; display: block;
+      background: #080c14; border-bottom: 1px solid var(--border-color); margin: -1.25rem -1.25rem 1rem -1.25rem;
+    }
+    .card-image-preview {
+      width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; display: block;
+    }
+    .prompt-card:hover .card-image-preview { transform: scale(1.05); }
+    .thumb-count-badge {
+      position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(6px); color: #fff; font-size: 0.72rem; padding: 2px 7px;
+      border-radius: 6px; font-weight: 600; display: flex; align-items: center; gap: 4px;
+    }
+
+    /* Detail Page Gallery */
+    .prompt-gallery-panel {
+      margin-bottom: 1.5rem; background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: var(--radius); padding: 1.25rem;
+    }
+    .gallery-header { margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+    .gallery-hint { font-size: 0.82rem; color: var(--accent-cyan); font-weight: 500; }
+    .gallery-featured-wrapper {
+      position: relative; width: 100%; max-height: 480px; min-height: 220px;
+      background: #06080e; border-radius: 10px; overflow: hidden; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.06);
+    }
+    .gallery-featured-wrapper img {
+      max-width: 100%; max-height: 480px; object-fit: contain; display: block;
+      transition: transform 0.25s ease;
+    }
+    .gallery-featured-wrapper:hover img { transform: scale(1.02); }
+    .gallery-overlay {
+      position: absolute; bottom: 0; left: 0; right: 0; padding: 16px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.8)); opacity: 0;
+      transition: opacity 0.2s ease; display: flex; justify-content: flex-end;
+    }
+    .gallery-featured-wrapper:hover .gallery-overlay { opacity: 1; }
+    .gallery-zoom-badge {
+      background: rgba(139, 92, 246, 0.9); color: #fff; padding: 6px 14px;
+      border-radius: 8px; font-size: 0.82rem; font-weight: 600; backdrop-filter: blur(4px);
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .gallery-thumbs-row {
+      display: flex; gap: 10px; margin-top: 12px; overflow-x: auto; padding-bottom: 4px;
+    }
+    .gallery-thumb-item {
+      width: 80px; height: 60px; border-radius: 8px; overflow: hidden; cursor: pointer;
+      border: 2px solid transparent; flex-shrink: 0; opacity: 0.6; transition: all 0.2s ease;
+      background: #06080e;
+    }
+    .gallery-thumb-item.active, .gallery-thumb-item:hover {
+      border-color: var(--accent-primary); opacity: 1; transform: translateY(-2px);
+    }
+    .gallery-thumb-item img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Lightbox Modal */
+    .lightbox-modal {
+      position: fixed; inset: 0; background: rgba(5, 7, 12, 0.94);
+      backdrop-filter: blur(14px); z-index: 3000; display: none;
+      flex-direction: column; justify-content: space-between;
+    }
+    .lightbox-modal.active { display: flex; }
+    .lightbox-toolbar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .lightbox-counter { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; }
+    .lightbox-actions { display: flex; gap: 8px; }
+    .lightbox-btn {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1);
+      color: #fff; width: 38px; height: 38px; border-radius: 8px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+      transition: all 0.2s ease; text-decoration: none;
+    }
+    .lightbox-btn:hover { background: var(--accent-primary); border-color: var(--accent-primary); }
+    .lightbox-body {
+      flex: 1; display: flex; align-items: center; justify-content: space-between;
+      position: relative; overflow: hidden; padding: 1rem;
+    }
+    .lightbox-nav-btn {
+      background: rgba(255,255,255,0.12); border: none; color: #fff; width: 48px; height: 48px;
+      border-radius: 50%; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; font-size: 1.2rem; transition: all 0.2s ease; z-index: 10;
+    }
+    .lightbox-nav-btn:hover { background: var(--accent-primary); }
+    .lightbox-img-wrapper {
+      flex: 1; height: 100%; display: flex; align-items: center; justify-content: center;
+      overflow: auto; user-select: none;
+    }
+    .lightbox-img-wrapper img {
+      max-width: 90vw; max-height: 80vh; object-fit: contain; transition: transform 0.2s ease;
+      border-radius: 8px; box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+
     /* Modal */
     .modal-backdrop {
       display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
-      backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 1rem;
+      backdrop-filter: blur(8px); z-index: 2500; align-items: center; justify-content: center; padding: 1rem;
     }
     .modal-backdrop.active { display: flex; }
     .modal-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; width: 100%; max-width: 550px; padding: 1.5rem; }
+    .modal-window { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; width: 100%; padding: 1.5rem; }
+    .modal-window.modal-wide { max-width: 720px; max-height: 90vh; overflow-y: auto; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-    .close-btn { background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; }
+    .modal-close, .close-btn { background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; }
+    .modal-close:hover, .close-btn:hover { color: #fff; }
     .form-group { margin-bottom: 0.85rem; }
     .form-group label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.3rem; }
-    .form-group input, .form-group select, .form-group textarea {
+    .form-group input, .form-group select, .form-group textarea, .form-input, .form-select, .form-textarea {
       width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.55rem 0.75rem; color: white; outline: none; font-size: 0.9rem;
     }
+    .form-group textarea.code-font { font-family: 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.4; }
+    .form-hint { display: block; margin-top: 4px; color: var(--text-muted); font-size: 0.75rem; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
     .modal-footer { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1.25rem; }
+
+    /* Admin Image Manager */
+    .images-manager-card {
+      background: #0a0e17; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; padding: 14px; margin-top: 14px;
+    }
+    .images-manager-header h4 { font-size: 0.95rem; margin-bottom: 2px; color: #e5e7eb; }
+    .images-manager-header small { color: var(--text-muted); font-size: 0.8rem; }
+    .edit-images-list {
+      display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; min-height: 30px;
+    }
+    .edit-image-chip {
+      position: relative; width: 85px; height: 85px; border-radius: 8px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.15); background: #000;
+    }
+    .edit-image-chip img { width: 100%; height: 100%; object-fit: cover; }
+    .edit-image-chip .chip-delete {
+      position: absolute; top: 4px; right: 4px; background: rgba(239,68,68,0.9);
+      color: #fff; border: none; width: 22px; height: 22px; border-radius: 50%;
+      cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center;
+    }
+    .edit-image-chip .chip-primary-badge {
+      position: absolute; bottom: 4px; left: 4px; background: rgba(139,92,246,0.9);
+      color: #fff; font-size: 0.65rem; padding: 1px 5px; border-radius: 4px; font-weight: bold;
+    }
+    .add-url-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .upload-r2-dropzone {
+      border: 2px dashed rgba(139,92,246,0.4); border-radius: 8px; padding: 16px;
+      text-align: center; cursor: pointer; transition: all 0.2s ease; background: rgba(139,92,246,0.04);
+    }
+    .upload-r2-dropzone:hover {
+      border-color: var(--accent-primary); background: rgba(139,92,246,0.08);
+    }
+    .dropzone-icon { font-size: 1.8rem; color: var(--accent-primary); margin-bottom: 6px; }
+    .dropzone-text strong { display: block; font-size: 0.88rem; color: #f3f4f6; }
+    .dropzone-text span { font-size: 0.75rem; color: var(--text-muted); }
+    .upload-spinner { color: var(--accent-cyan); font-weight: 600; font-size: 0.85rem; margin-top: 8px; }
 
     /* Toast */
     .toast-message {
       position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--bg-card); border: 1px solid var(--accent-primary);
       padding: 0.6rem 1.25rem; border-radius: 10px; font-weight: 600; color: white; font-size: 0.85rem;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5); opacity: 0; transform: translateY(20px); transition: all 0.3s ease; pointer-events: none; z-index: 2000;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5); opacity: 0; transform: translateY(20px); transition: all 0.3s ease; pointer-events: none; z-index: 4000;
     }
     .toast-message.show { opacity: 1; transform: translateY(0); }
 
