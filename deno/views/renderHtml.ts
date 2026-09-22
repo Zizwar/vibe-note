@@ -1,5 +1,22 @@
 import { PromptDoc, VariableDefinition, PaginatedPrompts } from "../db.ts";
 
+export function getGtmHeadScript(): string {
+  return `<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-KQG2BPK9');</script>
+<!-- End Google Tag Manager -->`;
+}
+
+export function getGtmNoScript(): string {
+  return `<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KQG2BPK9"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->`;
+}
+
 export function renderHomePage(
   data: PaginatedPrompts,
   selectedCategory = "all",
@@ -82,15 +99,21 @@ export function renderHomePage(
     ]
   };
 
+  const isFilteredPage = Boolean(selectedTag || searchQuery || (selectedCategory && selectedCategory !== 'all') || page > 1);
+  const robotsMeta = isFilteredPage
+    ? "noindex, follow"
+    : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
+
   return `<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
+  ${getGtmHeadScript()}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(pageTitle)}</title>
   <meta name="description" content="${escapeHtml(pageDesc)}">
   <meta name="keywords" content="AI prompts, prompt engineering, ChatGPT prompts, Midjourney prompts, Claude prompts, Gemini prompts, AI prompt generator, Vibe Note">
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="robots" content="${robotsMeta}">
   <meta name="google-adsense-account" content="ca-pub-5448783245957365">
   <link rel="canonical" href="${canonicalUrl}">
   <link rel="alternate" type="application/rss+xml" title="Vibe Note - Latest Prompts" href="${baseUrl}/feed.xml">
@@ -127,6 +150,7 @@ export function renderHomePage(
   </style>
 </head>
 <body>
+  ${getGtmNoScript()}
   <div class="app-layout">
     <!-- Header -->
     <header class="navbar">
@@ -401,6 +425,7 @@ export function renderPromptDetailPage(
   return `<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
+  ${getGtmHeadScript()}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(promptTitle)}</title>
@@ -448,6 +473,7 @@ export function renderPromptDetailPage(
   </style>
 </head>
 <body>
+  ${getGtmNoScript()}
   <div class="app-layout">
     <!-- Header -->
     <header class="navbar">
@@ -1869,6 +1895,7 @@ export function renderPendingPrivatePromptPage(prompt: PromptDoc, baseUrl = "htt
   return `<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
+  ${getGtmHeadScript()}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Private Prompt — Pending Review | Vibe Note</title>
@@ -1883,6 +1910,7 @@ export function renderPendingPrivatePromptPage(prompt: PromptDoc, baseUrl = "htt
   </style>
 </head>
 <body>
+  ${getGtmNoScript()}
   <div class="app-layout">
     <header class="navbar">
       <div class="container nav-container">
@@ -1923,6 +1951,7 @@ export function render404Page(baseUrl = "https://vibenote.sbs"): string {
   return `<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
+  ${getGtmHeadScript()}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>404 — Page Not Found | Vibe Note</title>
@@ -1937,6 +1966,7 @@ export function render404Page(baseUrl = "https://vibenote.sbs"): string {
   </style>
 </head>
 <body>
+  ${getGtmNoScript()}
   <div class="app-layout">
     <header class="navbar">
       <div class="container nav-container">

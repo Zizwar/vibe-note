@@ -2,18 +2,62 @@ import { PromptDoc, PromptMeta } from "./db.ts";
 
 export function generateRobotsTxt(baseUrl = "https://vibenote.sbs"): string {
   return `# Robots.txt for Vibe Note (https://vibenote.sbs)
+
+# Block aggressive scrapers and AI bots that drain request quotas
+User-agent: Bytespider
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+# General search engines (Google, Bing, etc.)
 User-agent: *
-Allow: /
+Allow: /$
 Allow: /p/
 Allow: /feed.xml
 Allow: /rss.xml
-Allow: /sitemap.xml
 Allow: /sitemap*.xml
 
+# Prevent spider traps: disallow query parameter explosion (tags, search, sort, filters, format types)
+Disallow: /*?*
+Disallow: /*?tag=
+Disallow: /*?search=
+Disallow: /*?category=
+Disallow: /*?sort=
+Disallow: /*?page=
+Disallow: /*?type=
+Disallow: /*?format=
+
+# Disallow admin & internal endpoints
 Disallow: /admin
 Disallow: /admin/
+Disallow: /api/
 Disallow: /api/admin/
 Disallow: /api/seed
+
+# Crawl delay to prevent flood
+Crawl-delay: 2
 
 # Search Engine Sitemaps
 Sitemap: ${baseUrl}/sitemap.xml

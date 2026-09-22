@@ -1,9 +1,11 @@
 import { PromptDoc, PaginatedPrompts } from "../db.ts";
+import { getGtmHeadScript, getGtmNoScript } from "./renderHtml.ts";
 
 export function renderAdminLoginPage(error?: string, redirectUrl = "/admin"): string {
   return `<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
+  ${getGtmHeadScript()}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Login — VibeNote</title>
@@ -16,6 +18,7 @@ export function renderAdminLoginPage(error?: string, redirectUrl = "/admin"): st
   </style>
 </head>
 <body class="login-body">
+  ${getGtmNoScript()}
   <div class="login-card">
     <div class="brand-logo text-center">
       <div class="logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
@@ -57,6 +60,7 @@ export function renderAdminDashboardPage(data: {
   return `<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
+  ${getGtmHeadScript()}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard — VibeNote</title>
@@ -69,6 +73,7 @@ export function renderAdminDashboardPage(data: {
   </style>
 </head>
 <body>
+  ${getGtmNoScript()}
   <div class="admin-layout">
     <!-- Top Admin Bar -->
     <header class="admin-navbar">

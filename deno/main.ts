@@ -59,6 +59,10 @@ Deno.serve({ port: PORT }, async (req: Request) => {
   const scheme = req.headers.get("x-forwarded-proto") || (hostHeader.includes("localhost") ? "http" : "https");
   const baseUrl = `${scheme}://${hostHeader.replace(/:3333$/, '')}`;
 
+  const clientIp = getClientIp(req);
+  const userAgent = req.headers.get("user-agent") || "unknown";
+  console.log(`📥 [${new Date().toISOString()}] ${method} ${path}${url.search ? url.search : ""} | IP: ${clientIp} | UA: ${userAgent.slice(0, 120)}`);
+
   // CORS Headers
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -245,10 +249,13 @@ Deno.serve({ port: PORT }, async (req: Request) => {
 
       const paginatedData = await getPublicPrompts({ category, search, tag, sort, page, limit });
       const html = renderHomePage(paginatedData, category, search, tag, baseUrl);
+      const isFiltered = Boolean(tag || search || (category && category !== "all") || page > 1);
       return new Response(method === "HEAD" ? null : html, {
         headers: {
           "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "public, max-age=60, s-maxage=120",
+          "Cache-Control": isFiltered
+            ? "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400"
+            : "public, max-age=300, s-maxage=1800, stale-while-revalidate=3600",
           ...corsHeaders
         },
       });
@@ -658,7 +665,9 @@ ${prompt.content}
       return new Response(method === "HEAD" ? null : html, {
         headers: {
           "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": isApproved ? "public, max-age=300, s-maxage=600" : "no-store, no-cache",
+          "Cache-Control": isApproved
+            ? "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
+            : "no-store, no-cache",
           ...corsHeaders,
         },
       });
